@@ -1,0 +1,3725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Operations Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
+
+  :root {
+    --bg: #f5f2ed;
+    --surface: #ffffff;
+    --surface2: #faf8f5;
+    --border: #e5e0d8;
+    --border2: #d4cec4;
+    --text: #1a1814;
+    --text2: #6b6560;
+    --text3: #9e9890;
+    --accent: #2c5f2e;
+    --accent-light: #e8f0e8;
+    --accent2: #8b4513;
+    --accent2-light: #fdf3ec;
+    --danger: #c0392b;
+    --danger-light: #fdf0ef;
+    --warning: #d4a017;
+    --warning-light: #fdf8ec;
+    --info: #1a5276;
+    --info-light: #eaf2f8;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 100;
+  }
+
+  .sidebar-header {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hotel-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .hotel-sub {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .nav { padding: 12px 8px; flex: 1; overflow-y: auto; }
+
+  .nav-section {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 8px 8px 4px;
+    font-weight: 500;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13.5px;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+
+  .nav-item:hover { background: var(--bg); color: var(--text); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+
+  .nav-icon {
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  /* MAIN */
+  .main {
+    margin-left: 220px;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  .topbar {
+    position: sticky; top: 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 50;
+  }
+
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text);
+  }
+
+  .topbar-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .date-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .content { padding: 24px 28px; flex: 1; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 16px;
+  }
+
+  /* STAT CARDS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 26px;
+    font-weight: 300;
+    color: var(--text);
+    line-height: 1;
+    font-family: 'DM Serif Display', serif;
+  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .stat-badge {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 500;
+    padding: 2px 7px; border-radius: 12px;
+    margin-top: 6px;
+  }
+
+  .badge-up { background: var(--accent-light); color: var(--accent); }
+  .badge-down { background: var(--danger-light); color: var(--danger); }
+  .badge-warn { background: var(--warning-light); color: var(--warning); }
+  .badge-info { background: var(--info-light); color: var(--info); }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* TABLES */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* STATUS BADGES */
+  .status {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 12px;
+    font-size: 11px; font-weight: 500;
+  }
+
+  .status-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+  }
+
+  .s-open { background: var(--warning-light); color: var(--warning); }
+  .s-open .status-dot { background: var(--warning); }
+  .s-closed { background: var(--accent-light); color: var(--accent); }
+  .s-closed .status-dot { background: var(--accent); }
+  .s-urgent { background: var(--danger-light); color: var(--danger); }
+  .s-urgent .status-dot { background: var(--danger); }
+  .s-pending { background: var(--info-light); color: var(--info); }
+  .s-pending .status-dot { background: var(--info); }
+
+  /* FORMS */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .form-full { grid-column: 1 / -1; }
+
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  input, select, textarea {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  textarea { resize: vertical; min-height: 72px; }
+
+  .btn {
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-primary:hover { background: #1e4220; }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover { background: var(--bg); }
+
+  .btn-danger {
+    background: var(--danger-light);
+    color: var(--danger);
+  }
+
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    height: 6px; background: var(--border);
+    border-radius: 3px; overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .progress-fill {
+    height: 100%; border-radius: 3px;
+    background: var(--accent);
+    transition: width 0.4s ease;
+  }
+
+  .progress-fill.warn { background: var(--warning); }
+  .progress-fill.danger { background: var(--danger); }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+  }
+
+  .upload-zone:hover { border-color: var(--accent); background: var(--accent-light); }
+  .upload-zone.dragover { border-color: var(--accent); background: var(--accent-light); }
+
+  .upload-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-text { font-size: 14px; color: var(--text2); }
+  .upload-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+  /* TABS */
+  .tabs {
+    display: flex; gap: 2px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .tab {
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    border: none; background: none;
+    color: var(--text2);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+    margin-bottom: -1px;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+
+  /* ALERT */
+  .alert {
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    display: flex; align-items: flex-start; gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .alert-warn { background: var(--warning-light); color: #7a5800; border: 1px solid #f0d060; }
+  .alert-danger { background: var(--danger-light); color: var(--danger); border: 1px solid #f5c6c6; }
+  .alert-success { background: var(--accent-light); color: var(--accent); border: 1px solid #c5dcc5; }
+
+  /* SECTION */
+  .section { margin-bottom: 24px; }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title { font-size: 15px; font-weight: 500; color: var(--text); }
+
+  /* HIDDEN */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CHART WRAP */
+  .chart-wrap { position: relative; width: 100%; height: 240px; }
+
+  /* LEAVE CALENDAR */
+  .leave-tag {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 10px; font-size: 11px; font-weight: 500;
+    margin: 1px;
+  }
+
+  .lt-annual { background: var(--info-light); color: var(--info); }
+  .lt-sick { background: var(--danger-light); color: var(--danger); }
+  .lt-emergency { background: var(--warning-light); color: var(--warning); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .sidebar { width: 180px; }
+    .main { margin-left: 180px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  .text-muted { color: var(--text3); }
+  .text-sm { font-size: 12px; }
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .justify-between { justify-content: space-between; }
+  .w-full { width: 100%; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="hotel-name">The Grand<br>Operations</div>
+    <div class="hotel-sub">70 Rooms</div>
+  </div>
+  <div class="nav">
+    <div class="nav-section">Overview</div>
+    <button class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon">◈</span> Dashboard
+    </button>
+
+    <div class="nav-section">Operations</div>
+    <button class="nav-item" onclick="showPage('occupancy')">
+      <span class="nav-icon">⊡</span> Occupancy & Revenue
+    </button>
+    <button class="nav-item" onclick="showPage('amenity')">
+      <span class="nav-icon">◫</span> Amenity Inventory
+    </button>
+    <button class="nav-item" onclick="showPage('fb')">
+      <span class="nav-icon">◉</span> Food & Beverage
+    </button>
+    <button class="nav-item" onclick="showPage('store')">
+      <span class="nav-icon">◈</span> Store & Retail
+    </button>
+
+    <div class="nav-section">Live Feeds</div>
+    <button class="nav-item" onclick="showPage('livedata')">
+      <span class="nav-icon">⊙</span> Google Sheets
+    </button>
+
+    <div class="nav-section">Management</div>
+    <button class="nav-item" onclick="showPage('payments')">
+      <span class="nav-icon">◎</span> Payment Recon
+    </button>
+    <button class="nav-item" onclick="showPage('maintenance')">
+      <span class="nav-icon">⊕</span> Maintenance
+    </button>
+    <button class="nav-item" onclick="showPage('accounts')">
+      <span class="nav-icon">◎</span> Accounts
+    </button>
+    <button class="nav-item" onclick="showPage('staff')">
+      <span class="nav-icon">◯</span> Staff
+    </button>
+  </div>
+  <div class="sidebar-footer">
+    <div id="current-date-sb"></div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-right">
+      <div class="date-pill" id="current-date"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div id="page-dashboard" class="page active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Occupancy</div>
+          <div class="stat-value" id="dash-occ">—</div>
+          <div class="stat-sub">of 70 rooms</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Occupied Rooms</div>
+          <div class="stat-value" id="dash-revpar">—</div>
+          <div class="stat-sub">in-house count</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">F&B Today</div>
+          <div class="stat-value" id="dash-fb">—</div>
+          <div class="stat-sub">across all outlets</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Open Jobs</div>
+          <div class="stat-value" id="dash-maint">—</div>
+          <div class="stat-sub">maintenance tasks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Low Stock</div>
+          <div class="stat-value" id="dash-stock">—</div>
+          <div class="stat-sub">amenity items below par</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Staff Today</div>
+          <div class="stat-value" id="dash-staff">—</div>
+          <div class="stat-sub">on leave / late</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Amenities Issued</div>
+          <div class="stat-value" id="dash-am-issued">—</div>
+          <div class="stat-sub">from Google Sheets today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Linen Dispatched</div>
+          <div class="stat-value" id="dash-linen">—</div>
+          <div class="stat-sub">latest shift total</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Recent Maintenance Jobs</div>
+          <div id="dash-maint-list"><div class="text-muted text-sm">No jobs logged yet</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Low Amenity Stock Alerts</div>
+          <div id="dash-alerts-list"><div class="text-muted text-sm">No low stock alerts</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ OCCUPANCY ═══ -->
+    <div id="page-occupancy" class="page">
+      <div class="section">
+        <div class="card">
+          <div class="card-title">Upload Housekeeping Report (PMS Export)</div>
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+               ondragover="event.preventDefault();this.classList.add('dragover')"
+               ondragleave="this.classList.remove('dragover')"
+               ondrop="handleDrop(event)">
+            <div class="upload-icon">⊡</div>
+            <div class="upload-text">Drop your Excel file here or click to browse</div>
+            <div class="upload-sub">Housekeeping Report .xlsx — Stay Overs, Arrivals, Departures, Available Products</div>
+          </div>
+          <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(event)">
+          <div id="occ-report-meta" style="display:none;margin-top:12px;font-size:12px;color:var(--text3)"></div>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="occ-stats" style="display:none">
+        <div class="stat-card">
+          <div class="stat-label">Occupancy Rate</div>
+          <div class="stat-value" id="occ-pct">—</div>
+          <div class="stat-sub" id="occ-pct-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Stay Overs</div>
+          <div class="stat-value" id="occ-stayovers">—</div>
+          <div class="stat-sub">in-house guests</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Arrivals Today</div>
+          <div class="stat-value" id="occ-arrivals">—</div>
+          <div class="stat-sub">checking in</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Departures Today</div>
+          <div class="stat-value" id="occ-departures">—</div>
+          <div class="stat-sub">checking out</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Available Rooms</div>
+          <div class="stat-value" id="occ-available">—</div>
+          <div class="stat-sub">vacant & clean</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Guests</div>
+          <div class="stat-value" id="occ-guests">—</div>
+          <div class="stat-sub">adults + children</div>
+        </div>
+      </div>
+
+      <!-- Room Status Summary -->
+      <div id="occ-status-grid" style="display:none;margin-bottom:20px">
+        <div class="section-header"><div class="section-title">Room Status Breakdown</div></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap" id="occ-status-pills"></div>
+      </div>
+
+      <div id="occ-charts" style="display:none; margin-bottom:20px;">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Occupancy by Room Type</div>
+            <div class="chart-wrap"><canvas id="roomtype-chart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Room Status Distribution</div>
+            <div class="chart-wrap"><canvas id="status-chart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabbed room lists -->
+      <div id="occ-table-section" style="display:none">
+        <div class="tabs" id="occ-tabs">
+          <button class="tab active" onclick="switchOccTab('stayovers')">Stay Overs</button>
+          <button class="tab" onclick="switchOccTab('arrivals')">Arrivals</button>
+          <button class="tab" onclick="switchOccTab('departures')">Departures</button>
+          <button class="tab" onclick="switchOccTab('available')">Available Rooms</button>
+        </div>
+
+        <!-- Stay Overs -->
+        <div id="occ-tab-stayovers">
+          <div class="section-header">
+            <div class="section-title"></div>
+            <div style="display:flex;gap:8px">
+              <select id="occ-filter-status" onchange="renderOccTable()" style="font-size:12px;padding:5px 8px;">
+                <option value="">All Statuses</option>
+                <option>Stayover</option>
+                <option>Dirty</option>
+                <option>Ready to Sell</option>
+                <option>Maintenance</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" onclick="exportOccTable()">Export CSV</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Room</th><th>Type</th><th>Guest</th><th>Arrival</th><th>Departure</th><th>Nights</th><th>Adults</th><th>Children</th><th>Status</th><th>Remarks</th></tr></thead>
+                <tbody id="occ-tbody-stayovers"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Arrivals -->
+        <div id="occ-tab-arrivals" style="display:none">
+          <div class="alert alert-success mt-8" style="margin-bottom:12px">Guests checking in today — ensure rooms are clean and ready before arrival time.</div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Room</th><th>Type</th><th>Guest</th><th>Arrival</th><th>Departure</th><th>Nights</th><th>Adults</th><th>Children</th><th>Status</th><th>Remarks</th></tr></thead>
+                <tbody id="occ-tbody-arrivals"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Departures -->
+        <div id="occ-tab-departures" style="display:none">
+          <div class="alert alert-warn mt-8" style="margin-bottom:12px">Guests checking out today — rooms to be serviced and prepared for next arrival.</div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Room</th><th>Type</th><th>Guest</th><th>Arrival</th><th>Departure</th><th>Nights</th><th>Adults</th><th>Children</th><th>Status</th><th>Remarks</th></tr></thead>
+                <tbody id="occ-tbody-departures"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Available -->
+        <div id="occ-tab-available" style="display:none">
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Room</th><th>Room Type</th></tr></thead>
+                <tbody id="occ-tbody-available"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ AMENITY INVENTORY ═══ -->
+    <div id="page-amenity" class="page">
+      <div class="grid-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-title">Add / Restock Item</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Item Name</label>
+              <input type="text" id="am-name" placeholder="e.g. Shampoo 50ml">
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="am-cat">
+                <option>Bathroom</option>
+                <option>Bedroom</option>
+                <option>Minibar</option>
+                <option>Linen</option>
+                <option>Stationery</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Current Stock</label>
+              <input type="number" id="am-stock" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label>Par Level (min)</label>
+              <input type="number" id="am-par" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label>Unit</label>
+              <input type="text" id="am-unit" placeholder="pcs, bottles, sets…">
+            </div>
+            <div class="form-group">
+              <label>Supplier</label>
+              <input type="text" id="am-supplier" placeholder="Supplier name">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="addAmenity()">Add Item</button>
+            <button class="btn btn-secondary" onclick="clearAmenityForm()">Clear</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Log Consumption</div>
+          <div class="form-group mt-8">
+            <label>Select Item</label>
+            <select id="am-consume-item"></select>
+          </div>
+          <div class="form-group mt-12">
+            <label>Qty Consumed</label>
+            <input type="number" id="am-consume-qty" placeholder="0" min="1">
+          </div>
+          <div class="form-group mt-12">
+            <label>Date</label>
+            <input type="date" id="am-consume-date">
+          </div>
+          <div class="form-group mt-12">
+            <label>Notes</label>
+            <input type="text" id="am-consume-notes" placeholder="Floor, event, etc.">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="logConsumption()">Log Consumption</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="am-alerts"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Current Inventory</div>
+          <div>
+            <select id="am-filter" onchange="renderAmenityTable()" style="font-size:12px;padding:5px 8px;">
+              <option value="">All Categories</option>
+              <option>Bathroom</option>
+              <option>Bedroom</option>
+              <option>Minibar</option>
+              <option>Linen</option>
+              <option>Stationery</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Category</th>
+                  <th>Stock</th>
+                  <th>Par Level</th>
+                  <th>Status</th>
+                  <th>Supplier</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="amenity-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ F&B ═══ -->
+    <div id="page-fb" class="page">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('fb','log')">Log Sales</button>
+        <button class="tab" onclick="switchTab('fb','records')">Records</button>
+        <button class="tab" onclick="switchTab('fb','summary')">Summary</button>
+      </div>
+
+      <div id="fb-tab-log">
+        <div class="card" style="max-width:600px">
+          <div class="card-title">Log F&B Sale</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="fb-date">
+            </div>
+            <div class="form-group">
+              <label>Outlet</label>
+              <select id="fb-outlet">
+                <option>Restaurant</option>
+                <option>Bar</option>
+                <option>Room Service</option>
+                <option>Conference / Banqueting</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Meal Period</label>
+              <select id="fb-period">
+                <option>Breakfast</option>
+                <option>Lunch</option>
+                <option>Dinner</option>
+                <option>All Day</option>
+                <option>Late Night</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Covers / Guests</label>
+              <input type="number" id="fb-covers" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label>Food Revenue</label>
+              <input type="number" id="fb-food" placeholder="0.00" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>Beverage Revenue</label>
+              <input type="number" id="fb-bev" placeholder="0.00" min="0" step="0.01">
+            </div>
+            <div class="form-group form-full">
+              <label>Notes</label>
+              <input type="text" id="fb-notes" placeholder="Events, specials, etc.">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="addFB()">Log Sale</button>
+            <button class="btn btn-secondary" onclick="clearFBForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="fb-tab-records" style="display:none">
+        <div class="section-header">
+          <div class="section-title">F&B Sales Records</div>
+          <select id="fb-records-filter" onchange="renderFBTable()" style="font-size:12px;padding:5px 8px;">
+            <option value="">All Outlets</option>
+            <option>Restaurant</option>
+            <option>Bar</option>
+            <option>Room Service</option>
+            <option>Conference / Banqueting</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Outlet</th><th>Period</th><th>Covers</th><th>Food</th><th>Beverage</th><th>Total</th><th></th></tr>
+              </thead>
+              <tbody id="fb-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="fb-tab-summary" style="display:none">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value" id="fb-total-rev">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Covers</div>
+            <div class="stat-value" id="fb-total-covers">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Spend / Cover</div>
+            <div class="stat-value" id="fb-avg-spend">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Top Outlet</div>
+            <div class="stat-value" style="font-size:16px" id="fb-top-outlet">—</div>
+          </div>
+        </div>
+        <div class="card mt-16">
+          <div class="card-title">Revenue by Outlet</div>
+          <div class="chart-wrap"><canvas id="fb-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STORE ═══ -->
+    <div id="page-store" class="page">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('store','stock')">Inventory</button>
+        <button class="tab" onclick="switchTab('store','sale')">Log Sale</button>
+        <button class="tab" onclick="switchTab('store','history')">Sales History</button>
+      </div>
+
+      <div id="store-tab-stock">
+        <div class="card" style="max-width:600px;margin-bottom:20px">
+          <div class="card-title">Add / Update Stock Item</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Item Name</label>
+              <input type="text" id="st-name" placeholder="e.g. Mineral Water 500ml">
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="st-cat">
+                <option>Beverages</option>
+                <option>Snacks</option>
+                <option>Toiletries</option>
+                <option>Souvenirs</option>
+                <option>Newspapers / Magazines</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Stock Qty</label>
+              <input type="number" id="st-qty" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label>Unit Price</label>
+              <input type="number" id="st-price" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label>Cost Price</label>
+              <input type="number" id="st-cost" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label>Reorder Level</label>
+              <input type="number" id="st-reorder" placeholder="0" min="0">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="addStoreItem()">Add Item</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Item</th><th>Category</th><th>Stock</th><th>Unit Price</th><th>Cost</th><th>Reorder</th><th>Status</th><th></th></tr></thead>
+              <tbody id="store-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="store-tab-sale" style="display:none">
+        <div class="card" style="max-width:500px">
+          <div class="card-title">Log Sale</div>
+          <div class="form-group">
+            <label>Item</label>
+            <select id="st-sale-item"></select>
+          </div>
+          <div class="form-group mt-12">
+            <label>Qty Sold</label>
+            <input type="number" id="st-sale-qty" placeholder="1" min="1">
+          </div>
+          <div class="form-group mt-12">
+            <label>Date</label>
+            <input type="date" id="st-sale-date">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="logStoreSale()">Log Sale</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="store-tab-history" style="display:none">
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead>
+              <tbody id="store-sales-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PAYMENT RECONCILIATION ═══ -->
+    <div id="page-payments" class="page">
+      <div class="grid-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-title">Upload Payment Report (User Selected)</div>
+          <div class="upload-zone" id="pay-upload-zone" onclick="document.getElementById('pay-file-input').click()"
+               ondragover="event.preventDefault();this.classList.add('dragover')"
+               ondragleave="this.classList.remove('dragover')"
+               ondrop="handlePayDrop(event)">
+            <div class="upload-icon">◎</div>
+            <div class="upload-text">Drop User Selected .xlsx here or click to browse</div>
+            <div class="upload-sub">Transaction report from PMS — folio, guest, amount, payment method</div>
+          </div>
+          <input type="file" id="pay-file-input" accept=".xlsx,.xls" style="display:none" onchange="handlePayFile(event)">
+          <div id="pay-report-meta" style="display:none;margin-top:10px;font-size:12px;color:var(--text3)"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Reconciliation Status</div>
+          <div id="pay-recon-status">
+            <div class="text-muted text-sm">Upload both the Housekeeping Report and Payment Report to run reconciliation.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary stats -->
+      <div class="stats-grid" id="pay-stats" style="display:none">
+        <div class="stat-card">
+          <div class="stat-label">Total Collected</div>
+          <div class="stat-value" id="pay-total">—</div>
+          <div class="stat-sub">payments received today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Guest Folios Paid</div>
+          <div class="stat-value" id="pay-paid-count">—</div>
+          <div class="stat-sub">matched to reservations</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Unpaid / No Payment</div>
+          <div class="stat-value" id="pay-unpaid-count" style="color:var(--danger)">—</div>
+          <div class="stat-sub">guests with no payment on file</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Casual / Walk-in</div>
+          <div class="stat-value" id="pay-casual-count">—</div>
+          <div class="stat-sub">non-guest transactions</div>
+        </div>
+      </div>
+
+      <div class="tabs" id="pay-tabs" style="display:none">
+        <button class="tab active" onclick="switchPayTab('recon')">Guest Reconciliation</button>
+        <button class="tab" onclick="switchPayTab('transactions')">All Transactions</button>
+        <button class="tab" onclick="switchPayTab('unpaid')">Unpaid Guests</button>
+        <button class="tab" onclick="switchPayTab('methods')">Payment Methods</button>
+        <button class="tab" onclick="switchPayTab('rates')">Room Rates</button>
+      </div>
+
+      <!-- Guest Reconciliation tab -->
+      <div id="pay-tab-recon">
+        <div class="section-header">
+          <div class="section-title">In-House Guests vs Payments</div>
+          <select id="pay-recon-filter" onchange="renderReconTable()" style="font-size:12px;padding:5px 8px;">
+            <option value="">All Guests</option>
+            <option value="paid">Paid</option>
+            <option value="unpaid">No Payment Found</option>
+            <option value="prepaid">Prepaid / Billback</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Room</th><th>Type</th><th>Guest</th><th>Arrival</th><th>Dep</th><th>Nights</th><th>Rate/Night</th><th>Owed to Date</th><th>Net Paid</th><th>Balance</th><th>Status</th><th>Method</th><th>Remarks</th></tr></thead>
+              <tbody id="pay-recon-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- All transactions -->
+      <div id="pay-tab-transactions" style="display:none">
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Folio</th><th>Time</th><th>Guest</th><th>Transaction</th><th>Method</th><th>Room Type</th><th>Arrival</th><th>Departure</th><th>Amount</th></tr></thead>
+              <tbody id="pay-tx-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unpaid guests -->
+      <div id="pay-tab-unpaid" style="display:none">
+        <div class="alert alert-danger" style="margin-bottom:12px">⚠ These in-house guests have no payment recorded in today's report. Follow up before departure.</div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Room</th><th>Room Type</th><th>Guest</th><th>Arrival</th><th>Departure</th><th>Nights</th><th>Remarks</th></tr></thead>
+              <tbody id="pay-unpaid-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment methods summary -->
+      <div id="pay-tab-methods" style="display:none">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Revenue by Payment Method</div>
+            <div class="chart-wrap"><canvas id="pay-method-chart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Method Breakdown</div>
+            <div id="pay-method-table"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rate Settings tab -->
+      <div id="pay-tab-rates" style="display:none">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Nightly Rates by Room Type</div>
+            <p style="font-size:12px;color:var(--text3);margin-bottom:14px">Set the rack rate per room type. These are used to calculate how much each guest owes per night and whether their payment covers their stay to date.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Room Type</th><th>Rate per Night</th><th></th></tr></thead>
+                <tbody id="rate-settings-table"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">How nightly allocation works</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.8">
+              <p style="margin-bottom:10px">When a guest pays in full on check-in, that payment is allocated against each night of their stay automatically:</p>
+              <div style="background:var(--surface2);border-radius:8px;padding:14px;font-size:12px;font-family:monospace;color:var(--text);margin-bottom:10px">
+                Guest pays K700 on arrival<br>
+                Room rate: K175/night<br>
+                Total stay: 5 nights (K875)<br>
+                ─────────────────────<br>
+                Night 1 → K175 allocated ✓<br>
+                Night 2 → K175 allocated ✓<br>
+                Night 3 → K175 allocated ✓<br>
+                Night 4 → K175 allocated ✓<br>
+                Night 5 → <span style="color:var(--danger)">K175 owed — K0 remaining</span><br>
+                ─────────────────────<br>
+                Balance due: K175
+              </div>
+              <p style="font-size:12px;color:var(--text3)">Billback / OTA guests (Expedia, Booking.com, company accounts) are flagged separately and excluded from the chase list.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LIVE DATA / GOOGLE SHEETS ═══ -->
+    <div id="page-livedata" class="page">
+
+      <!-- Status bar -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-header" style="margin-bottom:0">
+          <div>
+            <div class="card-title" style="margin-bottom:4px">Live Google Sheets Data</div>
+            <div style="font-size:12px;color:var(--text3)" id="gs-fetch-status">Click Fetch All to load latest data from your Google Sheets</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-primary" onclick="fetchAllSheets()">↻ Fetch All Now</button>
+            <button class="btn btn-secondary btn-sm" onclick="toggleGSSettings()">Manage Links</button>
+          </div>
+        </div>
+
+        <!-- Collapsible link settings -->
+        <div id="gs-settings-panel" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+          <p style="font-size:12px;color:var(--text3);margin-bottom:14px">Links are pre-configured. Only update if a sheet URL changes.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="form-group">
+              <label>Amenities Issued</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="gs-amenities-issued" style="flex:1;font-size:11px">
+                <button class="btn btn-secondary btn-sm" onclick="saveGSLink('amenities-issued')">Update</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Bathroom Amenities</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="gs-bathroom-amenities" style="flex:1;font-size:11px">
+                <button class="btn btn-secondary btn-sm" onclick="saveGSLink('bathroom-amenities')">Update</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Water Issued</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="gs-water-issued" style="flex:1;font-size:11px">
+                <button class="btn btn-secondary btn-sm" onclick="saveGSLink('water-issued')">Update</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Linen Dispatch (Morning/Day)</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="gs-linen" style="flex:1;font-size:11px">
+                <button class="btn btn-secondary btn-sm" onclick="saveGSLink('linen')">Update</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Linen Dispatch (Tab 2)</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="gs-linen2" style="flex:1;font-size:11px">
+                <button class="btn btn-secondary btn-sm" onclick="saveGSLink('linen2')">Update</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Linen Day End Log</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="gs-linen-dayend" style="flex:1;font-size:11px">
+                <button class="btn btn-secondary btn-sm" onclick="saveGSLink('linen-dayend')">Update</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Room Check / AppSheet (add when ready)</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="gs-roomcheck" style="flex:1;font-size:11px">
+                <button class="btn btn-secondary btn-sm" onclick="saveGSLink('roomcheck')">Update</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" id="gs-tabs">
+        <button class="tab active" onclick="switchGSTab('amenities')">Amenities Issued</button>
+        <button class="tab" onclick="switchGSTab('bathroom')">Bathroom Stock</button>
+        <button class="tab" onclick="switchGSTab('water')">Water Issued</button>
+        <button class="tab" onclick="switchGSTab('linen')">Linen Dispatch</button>
+        <button class="tab" onclick="switchGSTab('roomcheck')">Room Check</button>
+      </div>
+
+      <!-- Amenities Issued -->
+      <div id="gs-tab-amenities">
+        <div class="stats-grid" style="margin-bottom:16px">
+          <div class="stat-card"><div class="stat-label">Records Today</div><div class="stat-value" id="gs-am-today">—</div></div>
+          <div class="stat-card"><div class="stat-label">Rooms Serviced</div><div class="stat-value" id="gs-am-rooms">—</div></div>
+          <div class="stat-card"><div class="stat-label">Total Records</div><div class="stat-value" id="gs-am-total">—</div></div>
+          <div class="stat-card"><div class="stat-label">Last Fetched</div><div class="stat-value" style="font-size:13px" id="gs-am-updated">—</div></div>
+        </div>
+        <div class="card">
+          <div class="section-header" style="margin-bottom:12px">
+            <div class="section-title">Amenity Issues Log</div>
+            <input type="text" id="gs-am-search" placeholder="Search…" onkeyup="filterGSTable('amenities')" style="width:180px;font-size:12px;padding:5px 8px">
+          </div>
+          <div class="table-wrap"><table><thead id="gs-am-thead"></thead><tbody id="gs-am-tbody"><tr><td colspan="10" class="text-muted text-sm" style="padding:16px">Click Fetch All to load data</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- Bathroom Amenities -->
+      <div id="gs-tab-bathroom" style="display:none">
+        <div class="card">
+          <div class="card-title">Bathroom Amenity Stock</div>
+          <div class="table-wrap"><table><thead id="gs-bath-thead"></thead><tbody id="gs-bath-tbody"><tr><td colspan="10" class="text-muted text-sm" style="padding:16px">Click Fetch All to load data</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- Water Issued -->
+      <div id="gs-tab-water" style="display:none">
+        <div class="stats-grid" style="margin-bottom:16px">
+          <div class="stat-card"><div class="stat-label">Issued Today</div><div class="stat-value" id="gs-water-today">—</div></div>
+          <div class="stat-card"><div class="stat-label">Total Records</div><div class="stat-value" id="gs-water-count">—</div></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table><thead id="gs-water-thead"></thead><tbody id="gs-water-tbody"><tr><td colspan="10" class="text-muted text-sm" style="padding:16px">Click Fetch All to load data</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- Linen Dispatch -->
+      <div id="gs-tab-linen" style="display:none">
+        <div class="stats-grid" style="margin-bottom:16px">
+          <div class="stat-card"><div class="stat-label">Bath Towels (today)</div><div class="stat-value" id="gs-linen-towels">—</div></div>
+          <div class="stat-card"><div class="stat-label">Hand Towels (today)</div><div class="stat-value" id="gs-linen-hand">—</div></div>
+          <div class="stat-card"><div class="stat-label">All Sheets (today)</div><div class="stat-value" id="gs-linen-sheets">—</div></div>
+          <div class="stat-card"><div class="stat-label">Bath Robes (today)</div><div class="stat-value" id="gs-linen-robes">—</div></div>
+          <div class="stat-card"><div class="stat-label">Last Shift</div><div class="stat-value" style="font-size:13px" id="gs-linen-shift">—</div></div>
+          <div class="stat-card"><div class="stat-label">Storekeep</div><div class="stat-value" style="font-size:13px" id="gs-linen-store">—</div></div>
+        </div>
+        <div class="tabs" style="margin-bottom:12px" id="linen-subtabs">
+          <button class="tab active" onclick="switchLinenTab('dispatch')">Dispatch Log</button>
+          <button class="tab" onclick="switchLinenTab('dispatch2')">Dispatch Tab 2</button>
+          <button class="tab" onclick="switchLinenTab('dayend')">Day End Log</button>
+        </div>
+        <div id="linen-tab-dispatch">
+          <div class="card">
+            <div class="table-wrap"><table><thead id="gs-linen-thead"></thead><tbody id="gs-linen-tbody"><tr><td colspan="10" class="text-muted text-sm" style="padding:16px">Click Fetch All to load data</td></tr></tbody></table></div>
+          </div>
+        </div>
+        <div id="linen-tab-dispatch2" style="display:none">
+          <div class="card">
+            <div class="table-wrap"><table><thead id="gs-linen2-thead"></thead><tbody id="gs-linen2-tbody"><tr><td colspan="10" class="text-muted text-sm" style="padding:16px">Click Fetch All to load data</td></tr></tbody></table></div>
+          </div>
+        </div>
+        <div id="linen-tab-dayend" style="display:none">
+          <div class="card">
+            <div class="table-wrap"><table><thead id="gs-linend-thead"></thead><tbody id="gs-linend-tbody"><tr><td colspan="10" class="text-muted text-sm" style="padding:16px">Click Fetch All to load data</td></tr></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Room Check -->
+      <div id="gs-tab-roomcheck" style="display:none">
+<div class="stats-grid" style="margin-bottom:16px">
+          <div class="stat-card"><div class="stat-label">Rooms Checked Today</div><div class="stat-value" id="gs-rc-today">—</div></div>
+          <div class="stat-card"><div class="stat-label">Issues Flagged</div><div class="stat-value" style="color:var(--warning)" id="gs-rc-issues">—</div></div>
+          <div class="stat-card"><div class="stat-label">Staff Active</div><div class="stat-value" id="gs-rc-staff">—</div></div>
+        </div>
+        <div class="card">
+          <div class="section-header" style="margin-bottom:12px">
+            <div class="section-title">Room Check Log</div>
+            <select id="gs-rc-filter" onchange="filterRCTable()" style="font-size:12px;padding:5px 8px;"><option value="">All Rooms</option></select>
+          </div>
+          <div class="table-wrap"><table><thead id="gs-rc-thead"></thead><tbody id="gs-rc-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ MAINTENANCE ═══ -->
+    <div id="page-maintenance" class="page">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('maint','jobs')">Job Cards</button>
+        <button class="tab" onclick="switchTab('maint','equipment')">Equipment</button>
+        <button class="tab" onclick="switchTab('maint','vendors')">Vendors</button>
+        <button class="tab" onclick="switchTab('maint','schedule')">Preventive Schedule</button>
+      </div>
+
+      <!-- Jobs -->
+      <div id="maint-tab-jobs">
+        <div class="grid-2" style="margin-bottom:20px">
+          <div class="card">
+            <div class="card-title">New Job Card</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Location / Room</label>
+                <input type="text" id="mj-location" placeholder="e.g. Room 204, Pool Area">
+              </div>
+              <div class="form-group">
+                <label>Priority</label>
+                <select id="mj-priority">
+                  <option>Low</option>
+                  <option>Medium</option>
+                  <option>High</option>
+                  <option>Urgent</option>
+                </select>
+              </div>
+              <div class="form-group form-full">
+                <label>Description</label>
+                <textarea id="mj-desc" placeholder="Describe the issue…"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Assigned To</label>
+                <input type="text" id="mj-assigned" placeholder="Staff name">
+              </div>
+              <div class="form-group">
+                <label>Date Raised</label>
+                <input type="date" id="mj-date">
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="addJob()">Create Job</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Open Jobs Summary</div>
+            <div id="jobs-summary"><div class="text-muted text-sm">No jobs yet</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-header" style="margin-bottom:12px">
+            <div class="section-title">All Jobs</div>
+            <select id="job-status-filter" onchange="renderJobs()" style="font-size:12px;padding:5px 8px;">
+              <option value="">All Status</option>
+              <option>Open</option>
+              <option>In Progress</option>
+              <option>Closed</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Location</th><th>Description</th><th>Priority</th><th>Assigned</th><th>Date</th><th>Status</th><th></th></tr></thead>
+              <tbody id="jobs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equipment -->
+      <div id="maint-tab-equipment" style="display:none">
+        <div class="card" style="max-width:600px;margin-bottom:20px">
+          <div class="card-title">Register Equipment</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Equipment Name</label>
+              <input type="text" id="eq-name" placeholder="e.g. Industrial Washing Machine">
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <input type="text" id="eq-location" placeholder="e.g. Laundry Room">
+            </div>
+            <div class="form-group">
+              <label>Serial / Model</label>
+              <input type="text" id="eq-serial" placeholder="Serial number or model">
+            </div>
+            <div class="form-group">
+              <label>Purchase Date</label>
+              <input type="date" id="eq-purchased">
+            </div>
+            <div class="form-group">
+              <label>Service Interval</label>
+              <select id="eq-interval">
+                <option>Monthly</option>
+                <option>Quarterly</option>
+                <option>Bi-annual</option>
+                <option>Annual</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Last Serviced</label>
+              <input type="date" id="eq-last-service">
+            </div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="addEquipment()">Add Equipment</button></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Equipment</th><th>Location</th><th>Serial</th><th>Last Serviced</th><th>Interval</th><th>Next Due</th><th></th></tr></thead>
+              <tbody id="eq-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vendors -->
+      <div id="maint-tab-vendors" style="display:none">
+        <div class="card" style="max-width:500px;margin-bottom:20px">
+          <div class="card-title">Add Vendor / Contractor</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Company / Name</label>
+              <input type="text" id="vd-name">
+            </div>
+            <div class="form-group">
+              <label>Specialty</label>
+              <input type="text" id="vd-specialty" placeholder="Plumbing, Electrical…">
+            </div>
+            <div class="form-group">
+              <label>Contact</label>
+              <input type="text" id="vd-contact">
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="text" id="vd-phone">
+            </div>
+            <div class="form-group form-full">
+              <label>Notes</label>
+              <input type="text" id="vd-notes" placeholder="Contract details, rates…">
+            </div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="addVendor()">Add Vendor</button></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Specialty</th><th>Contact</th><th>Phone</th><th>Notes</th><th></th></tr></thead>
+              <tbody id="vd-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule -->
+      <div id="maint-tab-schedule" style="display:none">
+        <div class="card" style="max-width:500px;margin-bottom:20px">
+          <div class="card-title">Add Scheduled Task</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Task</label>
+              <input type="text" id="ps-task" placeholder="e.g. HVAC Filter Check">
+            </div>
+            <div class="form-group">
+              <label>Area</label>
+              <input type="text" id="ps-area">
+            </div>
+            <div class="form-group">
+              <label>Frequency</label>
+              <select id="ps-freq">
+                <option>Daily</option>
+                <option>Weekly</option>
+                <option>Monthly</option>
+                <option>Quarterly</option>
+                <option>Annual</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Next Due</label>
+              <input type="date" id="ps-due">
+            </div>
+            <div class="form-group">
+              <label>Assigned To</label>
+              <input type="text" id="ps-assigned">
+            </div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="addSchedule()">Add Task</button></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Task</th><th>Area</th><th>Frequency</th><th>Next Due</th><th>Assigned</th><th>Status</th><th></th></tr></thead>
+              <tbody id="ps-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ACCOUNTS ═══ -->
+    <div id="page-accounts" class="page">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('acc','entry')">New Entry</button>
+        <button class="tab" onclick="switchTab('acc','ledger')">Ledger</button>
+        <button class="tab" onclick="switchTab('acc','summary')">Summary</button>
+      </div>
+
+      <div id="acc-tab-entry">
+        <div class="card" style="max-width:600px">
+          <div class="card-title">Log Purchase / Expense</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="ac-date">
+            </div>
+            <div class="form-group">
+              <label>Type</label>
+              <select id="ac-type">
+                <option>Purchase</option>
+                <option>Expense</option>
+                <option>Utility Bill</option>
+                <option>Salary</option>
+                <option>Contract / Service</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Department</label>
+              <select id="ac-dept">
+                <option>Housekeeping</option>
+                <option>Front Office</option>
+                <option>F&B</option>
+                <option>Maintenance</option>
+                <option>Administration</option>
+                <option>Store</option>
+                <option>General</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Supplier / Payee</label>
+              <input type="text" id="ac-supplier">
+            </div>
+            <div class="form-group">
+              <label>Amount</label>
+              <input type="number" id="ac-amount" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label>Invoice / Ref #</label>
+              <input type="text" id="ac-ref">
+            </div>
+            <div class="form-group form-full">
+              <label>Description</label>
+              <input type="text" id="ac-desc" placeholder="What was purchased / paid for">
+            </div>
+            <div class="form-group">
+              <label>Payment Method</label>
+              <select id="ac-method">
+                <option>Cash</option>
+                <option>Bank Transfer</option>
+                <option>Cheque</option>
+                <option>Card</option>
+              </select>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="addAccount()">Log Entry</button>
+            <button class="btn btn-secondary" onclick="clearAccForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="acc-tab-ledger" style="display:none">
+        <div class="section-header">
+          <div class="section-title">Expense Ledger</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="acc-filter-dept" onchange="renderLedger()" style="font-size:12px;padding:5px 8px;">
+              <option value="">All Depts</option>
+              <option>Housekeeping</option>
+              <option>Front Office</option>
+              <option>F&B</option>
+              <option>Maintenance</option>
+              <option>Administration</option>
+              <option>Store</option>
+              <option>General</option>
+            </select>
+            <select id="acc-filter-type" onchange="renderLedger()" style="font-size:12px;padding:5px 8px;">
+              <option value="">All Types</option>
+              <option>Purchase</option>
+              <option>Expense</option>
+              <option>Utility Bill</option>
+              <option>Salary</option>
+              <option>Contract / Service</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Type</th><th>Dept</th><th>Payee</th><th>Description</th><th>Amount</th><th>Method</th><th></th></tr></thead>
+              <tbody id="acc-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="acc-tab-summary" style="display:none">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Expenses</div>
+            <div class="stat-value" id="acc-total">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">This Month</div>
+            <div class="stat-value" id="acc-month">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Top Department</div>
+            <div class="stat-value" style="font-size:16px" id="acc-top-dept">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Entries</div>
+            <div class="stat-value" id="acc-count">—</div>
+          </div>
+        </div>
+        <div class="card mt-16">
+          <div class="card-title">Expenses by Department</div>
+          <div class="chart-wrap"><canvas id="acc-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STAFF ═══ -->
+    <div id="page-staff" class="page">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('staff','roster')">Roster</button>
+        <button class="tab" onclick="switchTab('staff','leave')">Leave</button>
+        <button class="tab" onclick="switchTab('staff','lateness')">Lateness</button>
+        <button class="tab" onclick="switchTab('staff','disciplinary')">Disciplinary</button>
+      </div>
+
+      <!-- Roster -->
+      <div id="staff-tab-roster">
+        <div class="card" style="max-width:600px;margin-bottom:20px">
+          <div class="card-title">Add Staff Member</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" id="sf-name">
+            </div>
+            <div class="form-group">
+              <label>Job Title</label>
+              <input type="text" id="sf-title" placeholder="e.g. Housekeeping Supervisor">
+            </div>
+            <div class="form-group">
+              <label>Department</label>
+              <select id="sf-dept">
+                <option>Front Office</option>
+                <option>Housekeeping</option>
+                <option>F&B</option>
+                <option>Maintenance</option>
+                <option>Accounts</option>
+                <option>Security</option>
+                <option>Management</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Shift</label>
+              <select id="sf-shift">
+                <option>Morning (6am–2pm)</option>
+                <option>Afternoon (2pm–10pm)</option>
+                <option>Night (10pm–6am)</option>
+                <option>Day (8am–5pm)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" id="sf-start">
+            </div>
+            <div class="form-group">
+              <label>Annual Leave Balance (days)</label>
+              <input type="number" id="sf-leave-bal" placeholder="21" min="0">
+            </div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="addStaff()">Add Staff</button></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Shift</th><th>Leave Balance</th><th></th></tr></thead>
+              <tbody id="staff-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leave -->
+      <div id="staff-tab-leave" style="display:none">
+        <div class="card" style="max-width:500px;margin-bottom:20px">
+          <div class="card-title">Log Leave Request</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Staff Member</label>
+              <select id="lv-staff"></select>
+            </div>
+            <div class="form-group">
+              <label>Leave Type</label>
+              <select id="lv-type">
+                <option>Annual Leave</option>
+                <option>Sick Leave</option>
+                <option>Emergency Leave</option>
+                <option>Unpaid Leave</option>
+                <option>Maternity / Paternity</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>From Date</label>
+              <input type="date" id="lv-from">
+            </div>
+            <div class="form-group">
+              <label>To Date</label>
+              <input type="date" id="lv-to">
+            </div>
+            <div class="form-group form-full">
+              <label>Notes</label>
+              <input type="text" id="lv-notes">
+            </div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="addLeave()">Log Leave</button></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Staff</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th></th></tr></thead>
+              <tbody id="leave-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lateness -->
+      <div id="staff-tab-lateness" style="display:none">
+        <div class="card" style="max-width:500px;margin-bottom:20px">
+          <div class="card-title">Log Lateness</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Staff Member</label>
+              <select id="lt-staff"></select>
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="lt-date">
+            </div>
+            <div class="form-group">
+              <label>Scheduled Time</label>
+              <input type="time" id="lt-scheduled">
+            </div>
+            <div class="form-group">
+              <label>Arrival Time</label>
+              <input type="time" id="lt-arrival">
+            </div>
+            <div class="form-group form-full">
+              <label>Reason / Notes</label>
+              <input type="text" id="lt-reason">
+            </div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="addLateness()">Log</button></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Staff</th><th>Scheduled</th><th>Arrived</th><th>Minutes Late</th><th>Reason</th><th></th></tr></thead>
+              <tbody id="lateness-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disciplinary -->
+      <div id="staff-tab-disciplinary" style="display:none">
+        <div class="card" style="max-width:600px;margin-bottom:20px">
+          <div class="card-title">Log Disciplinary Record</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Staff Member</label>
+              <select id="dc-staff"></select>
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="dc-date">
+            </div>
+            <div class="form-group">
+              <label>Action Type</label>
+              <select id="dc-type">
+                <option>Verbal Warning</option>
+                <option>Written Warning</option>
+                <option>Final Warning</option>
+                <option>Suspension</option>
+                <option>Dismissal</option>
+                <option>Commendation</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Issued By</label>
+              <input type="text" id="dc-by" placeholder="Manager / HR">
+            </div>
+            <div class="form-group form-full">
+              <label>Details</label>
+              <textarea id="dc-details" placeholder="Describe the incident or commendation…"></textarea>
+            </div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="addDisciplinary()">Save Record</button></div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Staff</th><th>Action</th><th>Issued By</th><th>Details</th><th></th></tr></thead>
+              <tbody id="disc-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .content -->
+</main>
+
+<script>
+// ═══════════════════════════════════
+// DATA STORE (localStorage)
+// ═══════════════════════════════════
+const DB = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch { return []; } },
+  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+  obj: k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } },
+  setObj: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+};
+
+// ═══════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════
+const $ = id => document.getElementById(id);
+const fmt = (n, d=0) => Number(n||0).toFixed(d);
+const today = () => new Date().toISOString().split('T')[0];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+
+function toastMsg(msg, type='success') {
+  const d = document.createElement('div');
+  const colors = { success: '#2c5f2e', danger: '#c0392b', warn: '#d4a017' };
+  d.style.cssText = `position:fixed;bottom:24px;right:24px;background:${colors[type]||colors.success};color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2);transition:opacity 0.3s`;
+  d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 300); }, 2000);
+}
+
+function deleteBtn(onclick) {
+  return `<button class="btn btn-danger btn-sm" onclick="${onclick}">Remove</button>`;
+}
+
+// Date
+function setDate() {
+  const d = new Date();
+  const s = d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+  $('current-date').textContent = s;
+  $('current-date-sb').textContent = s;
+}
+setDate();
+
+// Set today's date on all date inputs on page load
+document.querySelectorAll('input[type="date"]').forEach(el => { if(!el.value) el.value = today(); });
+
+// ═══════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════
+const pageTitles = {
+  dashboard: 'Dashboard',
+  occupancy: 'Occupancy & Revenue',
+  amenity: 'Amenity Inventory',
+  fb: 'Food & Beverage',
+  store: 'Store & Retail',
+  payments: 'Payment Reconciliation',
+  livedata: 'Google Sheets Live Data',
+  maintenance: 'Maintenance',
+  accounts: 'Accounts',
+  staff: 'Staff'
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  $(`page-${id}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes(`'${id}'`)) n.classList.add('active');
+  });
+  $('topbar-title').textContent = pageTitles[id] || id;
+  if (id === 'dashboard') updateDashboard();
+  if (id === 'amenity') { renderAmenityTable(); populateAmenitySelect(); }
+  if (id === 'fb') { renderFBTable(); }
+  if (id === 'store') { renderStoreTable(); populateStoreSelect(); }
+  if (id === 'maintenance') { renderJobs(); renderEquipment(); renderVendors(); renderSchedule(); }
+  if (id === 'payments') { renderPayRecon(); }
+  if (id === 'staff') { renderStaffTable(); populateStaffSelects(); renderLeave(); renderLateness(); renderDisciplinary(); }
+  if (id === 'livedata') { loadGSLinks(); }
+}
+
+// ═══════════════════════════════════
+// TABS
+// ═══════════════════════════════════
+const tabMap = {
+  fb: { log: 'fb-tab-log', records: 'fb-tab-records', summary: 'fb-tab-summary' },
+  store: { stock: 'store-tab-stock', sale: 'store-tab-sale', history: 'store-tab-history' },
+  maint: { jobs: 'maint-tab-jobs', equipment: 'maint-tab-equipment', vendors: 'maint-tab-vendors', schedule: 'maint-tab-schedule' },
+  acc: { entry: 'acc-tab-entry', ledger: 'acc-tab-ledger', summary: 'acc-tab-summary' },
+  staff: { roster: 'staff-tab-roster', leave: 'staff-tab-leave', lateness: 'staff-tab-lateness', disciplinary: 'staff-tab-disciplinary' }
+};
+
+function switchTab(group, tab) {
+  const tabs = tabMap[group];
+  if (!tabs) return;
+  Object.values(tabs).forEach(id => { const el = $(id); if(el) el.style.display = 'none'; });
+  const active = $(tabs[tab]);
+  if(active) active.style.display = 'block';
+  const btns = document.querySelectorAll(`#page-${group === 'maint' ? 'maintenance' : group === 'acc' ? 'accounts' : group} .tab`);
+  btns.forEach((b, i) => {
+    b.classList.toggle('active', Object.keys(tabs)[i] === tab);
+  });
+  if (group === 'fb' && tab === 'summary') renderFBSummary();
+  if (group === 'acc' && tab === 'summary') renderAccSummary();
+}
+
+// ═══════════════════════════════════
+// OCCUPANCY — Housekeeping Report Parser
+// Parses Cargo 88 / Semper PMS format:
+// Sections: Stay Overs | Arrivals | Departures | Available Products
+// ═══════════════════════════════════
+let occParsed = { stayovers: [], arrivals: [], departures: [], available: [], meta: {} };
+
+function handleDrop(e) {
+  e.preventDefault();
+  $('upload-zone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processExcel(file);
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (file) processExcel(file);
+}
+
+function processExcel(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: false });
+      const parsed = parseHousekeepingReport(rows);
+      occParsed = parsed;
+      DB.setObj('occ_parsed', parsed);
+      renderHousekeepingDashboard(parsed);
+      toastMsg('Report loaded successfully');
+    } catch(err) {
+      console.error(err);
+      toastMsg('Could not parse file. Check format.', 'danger');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseHousekeepingReport(rows) {
+  const result = { stayovers: [], arrivals: [], departures: [], available: [], meta: {} };
+  let section = null;
+
+  // Extract meta from top rows
+  for (let i = 0; i < Math.min(10, rows.length); i++) {
+    const cell = rows[i][0];
+    if (!cell) continue;
+    const s = String(cell);
+    if (i === 0) result.meta.hotel = s;
+    if (/Generated for/i.test(s)) result.meta.reportDate = s.replace(/Generated for\s*/i,'').trim();
+    if (/Generated on/i.test(s)) result.meta.generatedOn = s.replace(/Generated on\s*/i,'').trim();
+  }
+
+  const SECTION_HEADERS = ['stay overs', 'arrivals', 'departures', 'available products'];
+  const DATA_COLS = ['room','description','arrival','departure','guest','adults','children','product status','remarks'];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const first = row[0] !== null && row[0] !== undefined ? String(row[0]).trim().toLowerCase() : '';
+
+    // Detect section headers
+    if (SECTION_HEADERS.includes(first)) {
+      if (first === 'stay overs') section = 'stayovers';
+      else if (first === 'arrivals') section = 'arrivals';
+      else if (first === 'departures') section = 'departures';
+      else if (first === 'available products') section = 'available';
+      continue;
+    }
+
+    // Skip column header rows
+    if (first === 'room') continue;
+
+    if (!section) continue;
+
+    // Available products — only room + description
+    if (section === 'available') {
+      if (row[0] !== null && row[1] !== null) {
+        const rn = String(row[0]).trim();
+        const desc = String(row[1] || '').trim();
+        // Skip non-room rows like ROOFTOP standalone
+        if (rn && desc && rn.toUpperCase() !== 'ROOFTOP' && rn.toUpperCase() !== 'SPA') {
+          result.available.push({ room: rn, description: desc });
+        }
+      }
+      continue;
+    }
+
+    // Stay overs / Arrivals / Departures
+    // Row[0]=Room, [1]=Description, [2]=Arrival, [3]=Departure, [4]=Guest, [5]=Adults, [6]=Children, [7]=Status, [8]=Remarks
+    const roomVal = row[0];
+    if (roomVal === null || roomVal === undefined) continue;
+    const roomStr = String(roomVal).trim();
+
+    // Skip section totals row (e.g. row where col 5 is a number but col 0 is 'Arrivals' — already caught)
+    // Skip SPA / MR rows if desired — but actually keep meeting rooms as they appear
+    if (!roomStr) continue;
+
+    const guestName = cleanGuestName(row[4] ? String(row[4]).trim() : '');
+    if (!guestName && !roomStr) continue;
+
+    const entry = {
+      room: roomStr,
+      description: row[1] ? String(row[1]).trim() : '',
+      arrival: formatDate(row[2]),
+      departure: formatDate(row[3]),
+      guest: guestName,
+      adults: row[5] !== null ? parseInt(row[5]) || 0 : 0,
+      children: row[6] !== null ? parseInt(row[6]) || 0 : 0,
+      status: row[7] ? String(row[7]).trim() : '',
+      remarks: row[8] ? String(row[8]).trim() : '',
+      nights: calcNights(row[2], row[3])
+    };
+
+    result[section].push(entry);
+  }
+
+  return result;
+}
+
+function cleanGuestName(name) {
+  // Remove leading '- ' prefix that some PMS entries have
+  return name.replace(/^-\s*/, '').trim();
+}
+
+function formatDate(val) {
+  if (!val) return '';
+  // XLSX cellDates:true gives ISO strings like "2026-03-19T00:00:00.000Z" or Date objects
+  const s = String(val);
+  if (s.includes('T')) return s.split('T')[0]; // ISO
+  // Already formatted date string like "19/03/2026"
+  if (/\d{2}\/\d{2}\/\d{4}/.test(s)) return s;
+  return s;
+}
+
+function calcNights(arrival, departure) {
+  try {
+    const a = new Date(formatDate(arrival));
+    const d = new Date(formatDate(departure));
+    const diff = Math.round((d - a) / 86400000);
+    return diff > 0 ? diff : '—';
+  } catch { return '—'; }
+}
+
+function renderHousekeepingDashboard(parsed) {
+  const { stayovers, arrivals, departures, available, meta } = parsed;
+  const totalOccupied = stayovers.length + arrivals.length;
+  const TOTAL_ROOMS = 70;
+  const occPct = Math.round(totalOccupied / TOTAL_ROOMS * 100);
+
+  // Exclude non-room entries (SPA, MR, ROOFTOP) from guest count
+  const isRoom = e => /^\d+$/.test(e.room);
+  const totalGuests = [...stayovers, ...arrivals, ...departures]
+    .filter(isRoom)
+    .reduce((s, e) => s + e.adults + e.children, 0);
+
+  // Show meta
+  const metaEl = $('occ-report-meta');
+  if (meta.hotel || meta.reportDate) {
+    metaEl.style.display = '';
+    metaEl.textContent = `${meta.hotel || ''} · Report date: ${meta.reportDate || ''} · Generated: ${meta.generatedOn || ''}`;
+  }
+
+  // Stats
+  $('occ-stats').style.display = '';
+  $('occ-pct').textContent = occPct + '%';
+  $('occ-pct-sub').textContent = `${totalOccupied} of ${TOTAL_ROOMS} rooms`;
+  $('occ-stayovers').textContent = stayovers.filter(isRoom).length;
+  $('occ-arrivals').textContent = arrivals.filter(isRoom).length;
+  $('occ-departures').textContent = departures.filter(isRoom).length;
+  $('occ-available').textContent = available.length;
+  $('occ-guests').textContent = totalGuests;
+
+  // Room status pills
+  $('occ-status-grid').style.display = '';
+  const allActive = [...stayovers, ...arrivals, ...departures];
+  const statusCount = {};
+  allActive.forEach(e => { statusCount[e.status] = (statusCount[e.status]||0)+1; });
+  const statusColors = { 'Stayover':'s-closed', 'Dirty':'s-urgent', 'Ready to Sell':'s-pending', 'Maintenance':'s-open' };
+  $('occ-status-pills').innerHTML = Object.entries(statusCount).map(([s,n]) =>
+    `<span class="status ${statusColors[s]||'s-pending'}" style="font-size:13px;padding:6px 14px;border-radius:20px">
+      <span class="status-dot"></span>${s}: <strong>${n}</strong>
+    </span>`
+  ).join('');
+
+  // Charts
+  $('occ-charts').style.display = '';
+
+  // Room type occupancy
+  const typeCount = {};
+  allActive.filter(isRoom).forEach(e => { typeCount[e.description] = (typeCount[e.description]||0)+1; });
+  const rtCtx = $('roomtype-chart');
+  if (rtCtx._chart) rtCtx._chart.destroy();
+  rtCtx._chart = new Chart(rtCtx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(typeCount),
+      datasets: [{ data: Object.values(typeCount), backgroundColor: '#2c5f2e', borderRadius: 4 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{ticks:{font:{size:11}}}} }
+  });
+
+  // Status doughnut
+  const statusCtx = $('status-chart');
+  if (statusCtx._chart) statusCtx._chart.destroy();
+  statusCtx._chart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(statusCount),
+      datasets: [{ data: Object.values(statusCount), backgroundColor: ['#2c5f2e','#c0392b','#d4a017','#1a5276','#888'] }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right'}} }
+  });
+
+  // Tables
+  $('occ-table-section').style.display = '';
+  renderOccTable();
+
+  // Update dashboard
+  updateDashboard();
+}
+
+function roomRow(e) {
+  const statusCls = { 'Stayover':'s-closed','Dirty':'s-urgent','Ready to Sell':'s-pending','Maintenance':'s-open' };
+  const cls = statusCls[e.status] || 's-pending';
+  const remarks = e.remarks ? `<span title="${e.remarks.replace(/"/g,'&quot;')}" style="cursor:help;color:var(--text3);font-size:11px">${e.remarks.substring(0,40)}${e.remarks.length>40?'…':''}</span>` : '—';
+  return `<tr>
+    <td><strong>${e.room}</strong></td>
+    <td style="font-size:12px;color:var(--text2)">${e.description}</td>
+    <td>${e.guest || '—'}</td>
+    <td style="font-size:12px">${e.arrival}</td>
+    <td style="font-size:12px">${e.departure}</td>
+    <td style="text-align:center">${e.nights}</td>
+    <td style="text-align:center">${e.adults}</td>
+    <td style="text-align:center">${e.children}</td>
+    <td><span class="status ${cls}"><span class="status-dot"></span>${e.status}</span></td>
+    <td style="max-width:180px">${remarks}</td>
+  </tr>`;
+}
+
+function renderOccTable() {
+  const filter = $('occ-filter-status')?.value || '';
+  const so = filter ? occParsed.stayovers.filter(e=>e.status===filter) : occParsed.stayovers;
+  $('occ-tbody-stayovers').innerHTML = so.map(roomRow).join('') || '<tr><td colspan="10" class="text-muted text-sm" style="padding:16px">No records</td></tr>';
+  $('occ-tbody-arrivals').innerHTML = occParsed.arrivals.map(roomRow).join('') || '<tr><td colspan="10" class="text-muted text-sm" style="padding:16px">No arrivals</td></tr>';
+  $('occ-tbody-departures').innerHTML = occParsed.departures.map(roomRow).join('') || '<tr><td colspan="10" class="text-muted text-sm" style="padding:16px">No departures</td></tr>';
+  $('occ-tbody-available').innerHTML = occParsed.available.map(e =>
+    `<tr><td><strong>${e.room}</strong></td><td>${e.description}</td></tr>`
+  ).join('') || '<tr><td colspan="2" class="text-muted text-sm" style="padding:16px">No available rooms</td></tr>';
+}
+
+function switchOccTab(tab) {
+  ['stayovers','arrivals','departures','available'].forEach(t => {
+    const el = $(`occ-tab-${t}`); if(el) el.style.display = t===tab?'block':'none';
+  });
+  document.querySelectorAll('#occ-tabs .tab').forEach((b,i) => {
+    b.classList.toggle('active', ['stayovers','arrivals','departures','available'][i]===tab);
+  });
+}
+
+function exportOccTable() {
+  const all = [...occParsed.stayovers, ...occParsed.arrivals, ...occParsed.departures];
+  if (!all.length) return;
+  const ws = XLSX.utils.json_to_sheet(all);
+  const wb2 = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2, ws, 'Housekeeping');
+  XLSX.writeFile(wb2, 'housekeeping_export.xlsx');
+}
+
+// Restore saved parsed data on load
+try {
+  const savedParsed = DB.obj('occ_parsed');
+  if (savedParsed && savedParsed.stayovers && Array.isArray(savedParsed.stayovers)) {
+    occParsed = savedParsed;
+    renderHousekeepingDashboard(occParsed);
+  }
+} catch(e) { console.warn('Could not restore occ data', e); }
+
+// ═══════════════════════════════════
+// AMENITY INVENTORY
+// ═══════════════════════════════════
+function addAmenity() {
+  const name = $('am-name').value.trim();
+  if (!name) { toastMsg('Item name required', 'danger'); return; }
+  const items = DB.get('amenities');
+  items.push({
+    id: uid(), name, category: $('am-cat').value,
+    stock: parseInt($('am-stock').value)||0,
+    par: parseInt($('am-par').value)||0,
+    unit: $('am-unit').value || 'pcs',
+    supplier: $('am-supplier').value
+  });
+  DB.set('amenities', items);
+  clearAmenityForm();
+  renderAmenityTable();
+  populateAmenitySelect();
+  toastMsg('Item added');
+}
+
+function clearAmenityForm() {
+  ['am-name','am-stock','am-par','am-unit','am-supplier'].forEach(id => $(id).value = '');
+}
+
+function logConsumption() {
+  const itemId = $('am-consume-item').value;
+  const qty = parseInt($('am-consume-qty').value)||0;
+  if (!itemId || !qty) { toastMsg('Select item and quantity', 'danger'); return; }
+  const items = DB.get('amenities');
+  const idx = items.findIndex(i => i.id === itemId);
+  if (idx < 0) return;
+  items[idx].stock = Math.max(0, items[idx].stock - qty);
+  DB.set('amenities', items);
+  // Log consumption history
+  const hist = DB.get('am_history');
+  hist.push({ date: $('am-consume-date').value, itemId, itemName: items[idx].name, qty, notes: $('am-consume-notes').value });
+  DB.set('am_history', hist);
+  renderAmenityTable();
+  toastMsg('Consumption logged');
+  $('am-consume-qty').value = '';
+  $('am-consume-notes').value = '';
+}
+
+function populateAmenitySelect() {
+  const items = DB.get('amenities');
+  $('am-consume-item').innerHTML = items.map(i => `<option value="${i.id}">${i.name}</option>`).join('') || '<option>—</option>';
+}
+
+function renderAmenityTable() {
+  const items = DB.get('amenities');
+  const filter = $('am-filter').value;
+  const filtered = filter ? items.filter(i => i.category === filter) : items;
+
+  // Alerts
+  const low = items.filter(i => i.par > 0 && i.stock <= i.par);
+  $('am-alerts').innerHTML = low.map(i =>
+    `<div class="alert alert-${i.stock === 0 ? 'danger' : 'warn'}">⚠ ${i.name}: ${i.stock} ${i.unit} remaining (par: ${i.par})</div>`
+  ).join('');
+
+  $('amenity-tbody').innerHTML = filtered.map((item, idx) => {
+    const pct = item.par > 0 ? Math.min(100, Math.round(item.stock / item.par * 100)) : 100;
+    const cls = item.stock === 0 ? 's-urgent' : item.par > 0 && item.stock <= item.par ? 's-open' : 's-closed';
+    const label = item.stock === 0 ? 'Out of Stock' : item.par > 0 && item.stock <= item.par ? 'Low Stock' : 'OK';
+    return `<tr>
+      <td><strong>${item.name}</strong></td>
+      <td>${item.category}</td>
+      <td>${item.stock} ${item.unit}
+        <div class="progress-bar"><div class="progress-fill ${item.stock===0?'danger':item.par>0&&item.stock<=item.par?'warn':''}" style="width:${pct}%"></div></div>
+      </td>
+      <td>${item.par} ${item.unit}</td>
+      <td><span class="status ${cls}"><span class="status-dot"></span>${label}</span></td>
+      <td>${item.supplier||'—'}</td>
+      <td>${deleteBtn(`deleteAmenity('${item.id}')`)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="text-muted text-sm" style="padding:16px">No items yet</td></tr>';
+}
+
+function deleteAmenity(id) {
+  DB.set('amenities', DB.get('amenities').filter(i => i.id !== id));
+  renderAmenityTable();
+  populateAmenitySelect();
+}
+
+// ═══════════════════════════════════
+// F&B
+// ═══════════════════════════════════
+function addFB() {
+  const date = $('fb-date').value;
+  if (!date) { toastMsg('Date required', 'danger'); return; }
+  const records = DB.get('fb_records');
+  records.push({
+    id: uid(), date,
+    outlet: $('fb-outlet').value,
+    period: $('fb-period').value,
+    covers: parseInt($('fb-covers').value)||0,
+    food: parseFloat($('fb-food').value)||0,
+    bev: parseFloat($('fb-bev').value)||0,
+    notes: $('fb-notes').value
+  });
+  DB.set('fb_records', records);
+  clearFBForm();
+  renderFBTable();
+  toastMsg('Sale logged');
+}
+
+function clearFBForm() {
+  ['fb-covers','fb-food','fb-bev','fb-notes'].forEach(id => $(id).value = '');
+  $('fb-date').value = today();
+}
+
+function renderFBTable() {
+  const records = DB.get('fb_records');
+  const filter = $('fb-records-filter')?.value || '';
+  const filtered = filter ? records.filter(r => r.outlet === filter) : records;
+  $('fb-tbody').innerHTML = filtered.map(r => {
+    const total = r.food + r.bev;
+    return `<tr>
+      <td>${r.date}</td><td>${r.outlet}</td><td>${r.period}</td>
+      <td>${r.covers}</td><td>K${fmt(r.food,2)}</td><td>K${fmt(r.bev,2)}</td>
+      <td><strong>K${fmt(total,2)}</strong></td>
+      <td>${deleteBtn(`deleteFB('${r.id}')`)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="text-muted text-sm" style="padding:16px">No records yet</td></tr>';
+}
+
+function deleteFB(id) {
+  DB.set('fb_records', DB.get('fb_records').filter(r => r.id !== id));
+  renderFBTable();
+}
+
+function renderFBSummary() {
+  const records = DB.get('fb_records');
+  const totalRev = records.reduce((s,r) => s + r.food + r.bev, 0);
+  const totalCovers = records.reduce((s,r) => s + r.covers, 0);
+  const avgSpend = totalCovers ? totalRev / totalCovers : 0;
+
+  $('fb-total-rev').textContent = 'K' + fmt(totalRev, 2);
+  $('fb-total-covers').textContent = totalCovers;
+  $('fb-avg-spend').textContent = 'K' + fmt(avgSpend, 2);
+
+  // Top outlet
+  const outletRev = {};
+  records.forEach(r => { outletRev[r.outlet] = (outletRev[r.outlet]||0) + r.food + r.bev; });
+  const top = Object.entries(outletRev).sort((a,b) => b[1]-a[1])[0];
+  $('fb-top-outlet').textContent = top ? top[0] : '—';
+
+  // Chart
+  const outlets = ['Restaurant','Bar','Room Service','Conference / Banqueting'];
+  const ctx = $('fb-chart');
+  if (ctx._chart) ctx._chart.destroy();
+  ctx._chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: outlets,
+      datasets: [
+        { label: 'Food', data: outlets.map(o => records.filter(r=>r.outlet===o).reduce((s,r)=>s+r.food,0)), backgroundColor: '#2c5f2e' },
+        { label: 'Beverage', data: outlets.map(o => records.filter(r=>r.outlet===o).reduce((s,r)=>s+r.bev,0)), backgroundColor: '#8b4513' }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, scales: { x: { stacked:true }, y: { stacked:true, beginAtZero:true } } }
+  });
+}
+
+// ═══════════════════════════════════
+// STORE
+// ═══════════════════════════════════
+function addStoreItem() {
+  const name = $('st-name').value.trim();
+  if (!name) { toastMsg('Item name required','danger'); return; }
+  const items = DB.get('store_items');
+  items.push({
+    id: uid(), name, category: $('st-cat').value,
+    qty: parseInt($('st-qty').value)||0,
+    price: parseFloat($('st-price').value)||0,
+    cost: parseFloat($('st-cost').value)||0,
+    reorder: parseInt($('st-reorder').value)||0
+  });
+  DB.set('store_items', items);
+  ['st-name','st-qty','st-price','st-cost','st-reorder'].forEach(id => $(id).value = '');
+  renderStoreTable();
+  populateStoreSelect();
+  toastMsg('Item added');
+}
+
+function renderStoreTable() {
+  const items = DB.get('store_items');
+  $('store-tbody').innerHTML = items.map(item => {
+    const low = item.reorder > 0 && item.qty <= item.reorder;
+    const cls = item.qty === 0 ? 's-urgent' : low ? 's-open' : 's-closed';
+    const label = item.qty === 0 ? 'Out of Stock' : low ? 'Low' : 'OK';
+    return `<tr>
+      <td>${item.name}</td><td>${item.category}</td>
+      <td>${item.qty}</td><td>K${fmt(item.price,2)}</td>
+      <td>K${fmt(item.cost,2)}</td><td>${item.reorder}</td>
+      <td><span class="status ${cls}"><span class="status-dot"></span>${label}</span></td>
+      <td>${deleteBtn(`deleteStoreItem('${item.id}')`)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="text-muted text-sm" style="padding:16px">No items</td></tr>';
+}
+
+function populateStoreSelect() {
+  const items = DB.get('store_items');
+  $('st-sale-item').innerHTML = items.map(i => `<option value="${i.id}">${i.name}</option>`).join('') || '<option>—</option>';
+}
+
+function logStoreSale() {
+  const itemId = $('st-sale-item').value;
+  const qty = parseInt($('st-sale-qty').value)||0;
+  if (!itemId || !qty) { toastMsg('Select item and qty','danger'); return; }
+  const items = DB.get('store_items');
+  const idx = items.findIndex(i => i.id === itemId);
+  if (idx < 0) return;
+  const revenue = qty * items[idx].price;
+  items[idx].qty = Math.max(0, items[idx].qty - qty);
+  DB.set('store_items', items);
+  const sales = DB.get('store_sales');
+  sales.push({ id: uid(), date: $('st-sale-date').value, itemId, itemName: items[idx].name, qty, revenue });
+  DB.set('store_sales', sales);
+  renderStoreSalesHistory();
+  renderStoreTable();
+  toastMsg('Sale logged');
+}
+
+function renderStoreSalesHistory() {
+  const sales = DB.get('store_sales');
+  $('store-sales-tbody').innerHTML = sales.map(s =>
+    `<tr><td>${s.date}</td><td>${s.itemName}</td><td>${s.qty}</td><td>K${fmt(s.revenue,2)}</td></tr>`
+  ).join('') || '<tr><td colspan="4" class="text-muted" style="padding:16px">No sales yet</td></tr>';
+}
+
+function deleteStoreItem(id) {
+  DB.set('store_items', DB.get('store_items').filter(i => i.id !== id));
+  renderStoreTable();
+  populateStoreSelect();
+}
+
+// ═══════════════════════════════════
+// MAINTENANCE
+// ═══════════════════════════════════
+let jobCounter = DB.get('jobs').length;
+
+function addJob() {
+  const desc = $('mj-desc').value.trim();
+  if (!desc) { toastMsg('Description required','danger'); return; }
+  jobCounter++;
+  const jobs = DB.get('jobs');
+  jobs.push({
+    id: uid(), num: jobs.length + 1,
+    location: $('mj-location').value,
+    desc, priority: $('mj-priority').value,
+    assigned: $('mj-assigned').value,
+    date: $('mj-date').value || today(),
+    status: 'Open'
+  });
+  DB.set('jobs', jobs);
+  ['mj-location','mj-desc','mj-assigned'].forEach(id => $(id).value='');
+  $('mj-date').value = today();
+  renderJobs();
+  updateDashboard();
+  toastMsg('Job created');
+}
+
+function renderJobs() {
+  const jobs = DB.get('jobs');
+  const filter = $('job-status-filter')?.value || '';
+  const filtered = filter ? jobs.filter(j => j.status === filter) : jobs;
+
+  const open = jobs.filter(j => j.status==='Open').length;
+  const ip = jobs.filter(j => j.status==='In Progress').length;
+  const closed = jobs.filter(j => j.status==='Closed').length;
+
+  $('jobs-summary').innerHTML = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div class="stat-card" style="min-width:100px"><div class="stat-label">Open</div><div class="stat-value" style="font-size:20px;color:var(--warning)">${open}</div></div>
+      <div class="stat-card" style="min-width:100px"><div class="stat-label">In Progress</div><div class="stat-value" style="font-size:20px;color:var(--info)">${ip}</div></div>
+      <div class="stat-card" style="min-width:100px"><div class="stat-label">Closed</div><div class="stat-value" style="font-size:20px;color:var(--accent)">${closed}</div></div>
+    </div>`;
+
+  $('jobs-tbody').innerHTML = filtered.map(j => {
+    const pcls = j.priority === 'Urgent' ? 's-urgent' : j.priority === 'High' ? 's-open' : 's-pending';
+    const scls = j.status === 'Open' ? 's-open' : j.status === 'In Progress' ? 's-pending' : 's-closed';
+    return `<tr>
+      <td>#${j.num||'—'}</td><td>${j.location}</td>
+      <td style="max-width:200px">${j.desc}</td>
+      <td><span class="status ${pcls}"><span class="status-dot"></span>${j.priority}</span></td>
+      <td>${j.assigned||'—'}</td><td>${j.date}</td>
+      <td>
+        <select onchange="updateJobStatus('${j.id}',this.value)" style="font-size:12px;padding:4px 6px;">
+          ${['Open','In Progress','Closed'].map(s=>`<option ${s===j.status?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td>${deleteBtn(`deleteJob('${j.id}')`)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="text-muted text-sm" style="padding:16px">No jobs</td></tr>';
+}
+
+function updateJobStatus(id, status) {
+  const jobs = DB.get('jobs');
+  const idx = jobs.findIndex(j => j.id === id);
+  if (idx >= 0) { jobs[idx].status = status; DB.set('jobs', jobs); }
+  renderJobs();
+}
+
+function deleteJob(id) {
+  DB.set('jobs', DB.get('jobs').filter(j => j.id !== id));
+  renderJobs();
+}
+
+function addEquipment() {
+  const name = $('eq-name').value.trim();
+  if (!name) return;
+  const items = DB.get('equipment');
+  items.push({
+    id: uid(), name, location: $('eq-location').value,
+    serial: $('eq-serial').value, purchased: $('eq-purchased').value,
+    interval: $('eq-interval').value, lastService: $('eq-last-service').value
+  });
+  DB.set('equipment', items);
+  renderEquipment();
+  ['eq-name','eq-location','eq-serial','eq-purchased','eq-last-service'].forEach(id => $(id).value='');
+  toastMsg('Equipment added');
+}
+
+function renderEquipment() {
+  const items = DB.get('equipment');
+  $('eq-tbody').innerHTML = items.map(item => {
+    const nextDue = calcNextService(item.lastService, item.interval);
+    const overdue = nextDue && new Date(nextDue) < new Date();
+    return `<tr>
+      <td>${item.name}</td><td>${item.location}</td><td>${item.serial||'—'}</td>
+      <td>${item.lastService||'—'}</td><td>${item.interval}</td>
+      <td ${overdue?'style="color:var(--danger);font-weight:500"':''}>${nextDue||'—'}</td>
+      <td>${deleteBtn(`deleteEq('${item.id}')`)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="text-muted text-sm" style="padding:16px">No equipment registered</td></tr>';
+}
+
+function calcNextService(last, interval) {
+  if (!last) return null;
+  const d = new Date(last);
+  const map = { Monthly: 1, Quarterly: 3, 'Bi-annual': 6, Annual: 12 };
+  d.setMonth(d.getMonth() + (map[interval]||3));
+  return d.toISOString().split('T')[0];
+}
+
+function deleteEq(id) {
+  DB.set('equipment', DB.get('equipment').filter(i => i.id !== id));
+  renderEquipment();
+}
+
+function addVendor() {
+  const name = $('vd-name').value.trim();
+  if (!name) return;
+  const items = DB.get('vendors');
+  items.push({ id: uid(), name, specialty: $('vd-specialty').value, contact: $('vd-contact').value, phone: $('vd-phone').value, notes: $('vd-notes').value });
+  DB.set('vendors', items);
+  ['vd-name','vd-specialty','vd-contact','vd-phone','vd-notes'].forEach(id => $(id).value='');
+  renderVendors();
+  toastMsg('Vendor added');
+}
+
+function renderVendors() {
+  const items = DB.get('vendors');
+  $('vd-tbody').innerHTML = items.map(v =>
+    `<tr><td>${v.name}</td><td>${v.specialty}</td><td>${v.contact}</td><td>${v.phone}</td><td>${v.notes||'—'}</td><td>${deleteBtn(`deleteVendor('${v.id}')`)}</td></tr>`
+  ).join('') || '<tr><td colspan="6" class="text-muted text-sm" style="padding:16px">No vendors</td></tr>';
+}
+
+function deleteVendor(id) {
+  DB.set('vendors', DB.get('vendors').filter(v => v.id !== id));
+  renderVendors();
+}
+
+function addSchedule() {
+  const task = $('ps-task').value.trim();
+  if (!task) return;
+  const items = DB.get('pm_schedule');
+  items.push({ id: uid(), task, area: $('ps-area').value, freq: $('ps-freq').value, due: $('ps-due').value, assigned: $('ps-assigned').value, done: false });
+  DB.set('pm_schedule', items);
+  ['ps-task','ps-area','ps-assigned','ps-due'].forEach(id => $(id).value='');
+  renderSchedule();
+  toastMsg('Task added');
+}
+
+function renderSchedule() {
+  const items = DB.get('pm_schedule');
+  $('ps-tbody').innerHTML = items.map(item => {
+    const overdue = item.due && !item.done && new Date(item.due) < new Date();
+    const cls = item.done ? 's-closed' : overdue ? 's-urgent' : 's-pending';
+    const label = item.done ? 'Done' : overdue ? 'Overdue' : 'Scheduled';
+    return `<tr>
+      <td>${item.task}</td><td>${item.area}</td><td>${item.freq}</td>
+      <td ${overdue?'style="color:var(--danger)"':''}>${item.due||'—'}</td>
+      <td>${item.assigned||'—'}</td>
+      <td><span class="status ${cls}"><span class="status-dot"></span>${label}</span></td>
+      <td>
+        ${!item.done?`<button class="btn btn-secondary btn-sm" onclick="markScheduleDone('${item.id}')">Mark Done</button>`:''}
+        ${deleteBtn(`deleteSchedule('${item.id}')`)}
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="text-muted text-sm" style="padding:16px">No scheduled tasks</td></tr>';
+}
+
+function markScheduleDone(id) {
+  const items = DB.get('pm_schedule');
+  const idx = items.findIndex(i => i.id === id);
+  if (idx >= 0) { items[idx].done = true; DB.set('pm_schedule', items); }
+  renderSchedule();
+}
+
+function deleteSchedule(id) {
+  DB.set('pm_schedule', DB.get('pm_schedule').filter(i => i.id !== id));
+  renderSchedule();
+}
+
+// ═══════════════════════════════════
+// ACCOUNTS
+// ═══════════════════════════════════
+function addAccount() {
+  const amount = parseFloat($('ac-amount').value);
+  if (!amount || !$('ac-date').value) { toastMsg('Date and amount required','danger'); return; }
+  const entries = DB.get('accounts');
+  entries.push({
+    id: uid(), date: $('ac-date').value,
+    type: $('ac-type').value, dept: $('ac-dept').value,
+    supplier: $('ac-supplier').value, amount,
+    ref: $('ac-ref').value, desc: $('ac-desc').value,
+    method: $('ac-method').value
+  });
+  DB.set('accounts', entries);
+  clearAccForm();
+  renderLedger();
+  toastMsg('Entry logged');
+}
+
+function clearAccForm() {
+  ['ac-supplier','ac-amount','ac-ref','ac-desc'].forEach(id => $(id).value='');
+  $('ac-date').value = today();
+}
+
+function renderLedger() {
+  const entries = DB.get('accounts');
+  const dept = $('acc-filter-dept')?.value || '';
+  const type = $('acc-filter-type')?.value || '';
+  let filtered = entries;
+  if (dept) filtered = filtered.filter(e => e.dept === dept);
+  if (type) filtered = filtered.filter(e => e.type === type);
+  const total = filtered.reduce((s,e)=>s+e.amount,0);
+  $('acc-tbody').innerHTML = filtered.map(e =>
+    `<tr>
+      <td>${e.date}</td><td>${e.type}</td><td>${e.dept}</td>
+      <td>${e.supplier||'—'}</td><td>${e.desc||'—'}</td>
+      <td><strong>K${fmt(e.amount,2)}</strong></td>
+      <td>${e.method}</td>
+      <td>${deleteBtn(`deleteAccount('${e.id}')`)}</td>
+    </tr>`
+  ).join('') || '<tr><td colspan="8" class="text-muted text-sm" style="padding:16px">No entries</td></tr>';
+}
+
+function deleteAccount(id) {
+  DB.set('accounts', DB.get('accounts').filter(e => e.id !== id));
+  renderLedger();
+}
+
+function renderAccSummary() {
+  const entries = DB.get('accounts');
+  const total = entries.reduce((s,e)=>s+e.amount,0);
+  const thisMonth = entries.filter(e => e.date?.startsWith(new Date().toISOString().slice(0,7))).reduce((s,e)=>s+e.amount,0);
+
+  $('acc-total').textContent = 'K' + fmt(total,2);
+  $('acc-month').textContent = 'K' + fmt(thisMonth,2);
+  $('acc-count').textContent = entries.length;
+
+  const deptTotals = {};
+  entries.forEach(e => { deptTotals[e.dept] = (deptTotals[e.dept]||0) + e.amount; });
+  const topDept = Object.entries(deptTotals).sort((a,b)=>b[1]-a[1])[0];
+  $('acc-top-dept').textContent = topDept ? topDept[0] : '—';
+
+  const ctx = $('acc-chart');
+  if (ctx._chart) ctx._chart.destroy();
+  const depts = Object.keys(deptTotals);
+  ctx._chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: depts,
+      datasets: [{ label: 'Total Expenses', data: depts.map(d=>deptTotals[d]), backgroundColor: '#1a5276' }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{y:{beginAtZero:true}} }
+  });
+}
+
+// ═══════════════════════════════════
+// STAFF
+// ═══════════════════════════════════
+function addStaff() {
+  const name = $('sf-name').value.trim();
+  if (!name) { toastMsg('Name required','danger'); return; }
+  const staff = DB.get('staff');
+  staff.push({
+    id: uid(), name, title: $('sf-title').value,
+    dept: $('sf-dept').value, shift: $('sf-shift').value,
+    start: $('sf-start').value,
+    leaveBal: parseInt($('sf-leave-bal').value)||21
+  });
+  DB.set('staff', staff);
+  ['sf-name','sf-title','sf-start','sf-leave-bal'].forEach(id => $(id).value='');
+  renderStaffTable();
+  populateStaffSelects();
+  toastMsg('Staff member added');
+}
+
+function renderStaffTable() {
+  const staff = DB.get('staff');
+  $('staff-tbody').innerHTML = staff.map(s =>
+    `<tr>
+      <td><strong>${s.name}</strong></td><td>${s.title||'—'}</td>
+      <td>${s.dept}</td><td>${s.shift}</td>
+      <td>${s.leaveBal} days</td>
+      <td>${deleteBtn(`deleteStaff('${s.id}')`)}</td>
+    </tr>`
+  ).join('') || '<tr><td colspan="6" class="text-muted text-sm" style="padding:16px">No staff added</td></tr>';
+}
+
+function deleteStaff(id) {
+  DB.set('staff', DB.get('staff').filter(s => s.id !== id));
+  renderStaffTable();
+  populateStaffSelects();
+}
+
+function populateStaffSelects() {
+  const staff = DB.get('staff');
+  const opts = staff.map(s => `<option value="${s.id}">${s.name}</option>`).join('') || '<option>—</option>';
+  ['lv-staff','lt-staff','dc-staff'].forEach(id => { if($(id)) $(id).innerHTML = opts; });
+}
+
+function addLeave() {
+  const staffId = $('lv-staff').value;
+  const from = $('lv-from').value;
+  const to = $('lv-to').value;
+  if (!staffId || !from || !to) { toastMsg('All fields required','danger'); return; }
+  const days = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+  const leaves = DB.get('leaves');
+  leaves.push({ id: uid(), staffId, staffName: getStaffName(staffId), type: $('lv-type').value, from, to, days, notes: $('lv-notes').value, status: 'Approved' });
+  DB.set('leaves', leaves);
+
+  // Deduct from leave balance if annual
+  if ($('lv-type').value === 'Annual Leave') {
+    const staff = DB.get('staff');
+    const idx = staff.findIndex(s => s.id === staffId);
+    if (idx >= 0) { staff[idx].leaveBal = Math.max(0, staff[idx].leaveBal - days); DB.set('staff', staff); }
+  }
+
+  ['lv-from','lv-to','lv-notes'].forEach(id => $(id).value='');
+  renderLeave();
+  renderStaffTable();
+  toastMsg('Leave logged');
+}
+
+function renderLeave() {
+  const leaves = DB.get('leaves');
+  $('leave-tbody').innerHTML = leaves.map(l => {
+    const cls = l.type==='Sick Leave' ? 's-urgent' : l.type==='Emergency Leave' ? 's-open' : 's-closed';
+    return `<tr>
+      <td>${l.staffName}</td>
+      <td><span class="leave-tag lt-${l.type==='Annual Leave'?'annual':l.type==='Sick Leave'?'sick':'emergency'}">${l.type}</span></td>
+      <td>${l.from}</td><td>${l.to}</td><td>${l.days}</td>
+      <td><span class="status ${cls}"><span class="status-dot"></span>${l.status}</span></td>
+      <td>${deleteBtn(`deleteLeave('${l.id}')`)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="text-muted text-sm" style="padding:16px">No leave records</td></tr>';
+}
+
+function deleteLeave(id) {
+  DB.set('leaves', DB.get('leaves').filter(l => l.id !== id));
+  renderLeave();
+}
+
+function addLateness() {
+  const staffId = $('lt-staff').value;
+  const date = $('lt-date').value;
+  const scheduled = $('lt-scheduled').value;
+  const arrival = $('lt-arrival').value;
+  if (!staffId || !date) { toastMsg('Staff and date required','danger'); return; }
+  let mins = 0;
+  if (scheduled && arrival) {
+    const [sh,sm] = scheduled.split(':').map(Number);
+    const [ah,am] = arrival.split(':').map(Number);
+    mins = (ah*60+am) - (sh*60+sm);
+  }
+  const records = DB.get('lateness');
+  records.push({ id: uid(), date, staffId, staffName: getStaffName(staffId), scheduled, arrival, mins: Math.max(0,mins), reason: $('lt-reason').value });
+  DB.set('lateness', records);
+  ['lt-scheduled','lt-arrival','lt-reason'].forEach(id => $(id).value='');
+  $('lt-date').value = today();
+  renderLateness();
+  toastMsg('Lateness logged');
+}
+
+function renderLateness() {
+  const records = DB.get('lateness');
+  $('lateness-tbody').innerHTML = records.map(r =>
+    `<tr>
+      <td>${r.date}</td><td>${r.staffName}</td>
+      <td>${r.scheduled||'—'}</td><td>${r.arrival||'—'}</td>
+      <td><strong>${r.mins > 0 ? r.mins + ' min' : '—'}</strong></td>
+      <td>${r.reason||'—'}</td>
+      <td>${deleteBtn(`deleteLateness('${r.id}')`)}</td>
+    </tr>`
+  ).join('') || '<tr><td colspan="7" class="text-muted text-sm" style="padding:16px">No lateness records</td></tr>';
+}
+
+function deleteLateness(id) {
+  DB.set('lateness', DB.get('lateness').filter(r => r.id !== id));
+  renderLateness();
+}
+
+function addDisciplinary() {
+  const staffId = $('dc-staff').value;
+  const date = $('dc-date').value;
+  if (!staffId || !date) { toastMsg('Staff and date required','danger'); return; }
+  const records = DB.get('disciplinary');
+  records.push({ id: uid(), date, staffId, staffName: getStaffName(staffId), type: $('dc-type').value, by: $('dc-by').value, details: $('dc-details').value });
+  DB.set('disciplinary', records);
+  ['dc-by','dc-details'].forEach(id => $(id).value='');
+  $('dc-date').value = today();
+  renderDisciplinary();
+  toastMsg('Record saved');
+}
+
+function renderDisciplinary() {
+  const records = DB.get('disciplinary');
+  $('disc-tbody').innerHTML = records.map(r => {
+    const cls = r.type==='Commendation'?'s-closed':r.type.includes('Final')||r.type==='Dismissal'?'s-urgent':'s-open';
+    return `<tr>
+      <td>${r.date}</td><td>${r.staffName}</td>
+      <td><span class="status ${cls}"><span class="status-dot"></span>${r.type}</span></td>
+      <td>${r.by||'—'}</td>
+      <td style="max-width:200px;font-size:12px">${r.details||'—'}</td>
+      <td>${deleteBtn(`deleteDisc('${r.id}')`)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="text-muted text-sm" style="padding:16px">No records</td></tr>';
+}
+
+function deleteDisc(id) {
+  DB.set('disciplinary', DB.get('disciplinary').filter(r => r.id !== id));
+  renderDisciplinary();
+}
+
+function getStaffName(id) {
+  const staff = DB.get('staff');
+  return staff.find(s => s.id === id)?.name || '—';
+}
+
+// ═══════════════════════════════════
+// PAYMENT RECONCILIATION
+// Parses "User Selected" transaction report and cross-references
+// against the housekeeping report guest list
+// ═══════════════════════════════════
+let payData = { transactions: [], meta: {} };
+
+function handlePayDrop(e) {
+  e.preventDefault();
+  $('pay-upload-zone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processPayFile(file);
+}
+
+function handlePayFile(e) {
+  const file = e.target.files[0];
+  if (file) processPayFile(file);
+}
+
+function processPayFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: false });
+      const parsed = parsePaymentReport(rows);
+      payData = parsed;
+      DB.setObj('pay_data', parsed);
+      renderPayStats(parsed);
+      renderPayRecon();
+      toastMsg('Payment report loaded');
+    } catch(err) {
+      console.error('Payment parse error:', err);
+      toastMsg('Could not parse file: ' + (err.message || err), 'danger');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parsePaymentReport(rows) {
+  const result = { transactions: [], meta: {} };
+  let headerFound = false;
+  let colMap = {};
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const first = row[0] !== null ? String(row[0]).trim() : '';
+
+    // Meta
+    if (i === 0 && first) result.meta.hotel = first;
+    if (/Generated for/i.test(first)) result.meta.reportDate = first.replace(/Generated for\s*/i,'').trim();
+    if (/Generated on/i.test(first)) result.meta.generatedOn = first.replace(/Generated on\s*/i,'').trim();
+
+    // Detect header row
+    if (!headerFound && row.some(c => c && String(c).toLowerCase() === 'folio')) {
+      headerFound = true;
+      row.forEach((c, idx) => { if (c) colMap[String(c).trim().toLowerCase()] = idx; });
+      continue;
+    }
+
+    if (!headerFound) continue;
+
+    // Parse all values first, then apply guards
+    const amountRaw = row[colMap['amount']];
+    const amount = amountRaw !== null ? parseFloat(String(amountRaw).replace(/[^0-9.\-]/g,'')) : 0;
+    if (isNaN(amount)) continue;
+
+    const guestRaw = row[colMap['guest']];
+    const guestName = guestRaw ? cleanGuestName(String(guestRaw).trim()) : '';
+
+    const folioRaw = row[colMap['folio']];
+    const folio = folioRaw ? String(folioRaw).trim() : '';
+
+    // Skip total row and empty rows
+    const qtyVal = row[colMap['qty']];
+    if (qtyVal !== null && String(qtyVal).trim() === 'Total') continue;
+    if (amount === 0 && !guestName && !folio) continue;
+
+    const arrivalRaw = row[colMap['arrival']];
+    const departureRaw = row[colMap['departure']];
+
+    // NOTE: In Semper's User Selected report:
+    // col 'Bank' (col4) = bank/settlement date (a date value, not the method name)
+    // col 'Name' (col7) = the actual payment method: Cash, Credit Card, Bank Transfer etc
+    const paymentMethod = row[colMap['name']] ? String(row[colMap['name']]).trim() : '';
+
+    const tx = {
+      folio,
+      invNr: row[colMap['inv nr']] ? String(row[colMap['inv nr']]).trim() : '',
+      effective: formatDate(row[colMap['effective']]),
+      created: row[colMap['created']] ? String(row[colMap['created']]).trim() : '',
+      bank: paymentMethod,
+      arrival: formatDate(arrivalRaw),
+      departure: formatDate(departureRaw),
+      guest: guestName,
+      txDesc: row[colMap['transaction desc']] ? String(row[colMap['transaction desc']]).trim() : '',
+      amount,
+      roomType: row[colMap['room type']] ? String(row[colMap['room type']]).trim() : '',
+      isCasual: guestName === 'Casual Sales' || (!folio && !guestName),
+      isRefund: amount > 0,
+      isPayment: amount < 0
+    };
+
+    result.transactions.push(tx);
+  }
+
+  return result;
+}
+
+// Fuzzy name match — normalise and check if names share enough tokens
+function namesMatch(guestA, guestB) {
+  if (!guestA || !guestB) return false;
+  const norm = s => s.toLowerCase()
+    .replace(/^(mr|mrs|ms|miss|dr|prof)\.?\s*/i,'')
+    .replace(/^-\s*/, '')
+    .trim();
+  const a = norm(guestA);
+  const b = norm(guestB);
+  if (a === b) return true;
+  // Check if either contains the other
+  if (a.includes(b) || b.includes(a)) return true;
+  // Check if last name matches
+  const aTokens = a.split(/\s+/);
+  const bTokens = b.split(/\s+/);
+  const aLast = aTokens[aTokens.length-1];
+  const bLast = bTokens[bTokens.length-1];
+  if (aLast && bLast && aLast === bLast && aLast.length > 3) return true;
+  // Check any shared token > 4 chars
+  return aTokens.some(t => t.length > 4 && bTokens.includes(t));
+}
+
+function isPrepaidOrBillback(remarks) {
+  if (!remarks) return false;
+  return /prepaid|billback|bill back|bill-back|expedia|booking\.com|company.*pay|head office/i.test(remarks);
+}
+
+// ── ROOM RATE SETTINGS ─────────────────────────────────────────────
+const DEFAULT_RATES = {
+  'Double Room': 150, 'Double with Balcony': 175,
+  'Deluxe Room': 200, 'Deluxe with Balcony': 220,
+  'Executive Room': 240, 'Executive A with Bath': 260,
+  'Executive C with Balcony': 280, 'Twin Room': 160,
+  'Family Room': 230, 'Family with Balcony': 250,
+  'Penthouses': 400, 'Conference Rooms': 0, 'SPA': 0,
+};
+function getRates() {
+  const saved = DB.obj('room_rates');
+  return Object.keys(saved).length ? { ...DEFAULT_RATES, ...saved } : { ...DEFAULT_RATES };
+}
+function saveRate(roomType, rate) {
+  const saved = DB.obj('room_rates');
+  saved[roomType] = parseFloat(rate) || 0;
+  DB.setObj('room_rates', saved);
+  renderRateSettings();
+  toastMsg('Rate saved');
+}
+function renderRateSettings() {
+  const rates = getRates();
+  const el = $('rate-settings-table');
+  if (!el) return;
+  el.innerHTML = Object.entries(rates).map(([rt, r]) =>
+    `<tr>
+      <td style="font-size:13px">${rt}</td>
+      <td><input type="number" value="${r}" min="0" step="0.01" style="width:100px;padding:4px 8px;font-size:13px"
+        onchange="saveRate('${rt}', this.value)"></td>
+      <td style="font-size:11px;color:var(--text3)">per night</td>
+    </tr>`
+  ).join('');
+}
+
+function nightsStayedToDate(arrivalStr, reportDateStr) {
+  try {
+    const arrival = new Date(arrivalStr);
+    const report = new Date(reportDateStr || today());
+    const diff = Math.floor((report - arrival) / 86400000);
+    return Math.max(1, diff);
+  } catch { return 1; }
+}
+
+function runReconciliation() {
+  const reportDate = (occParsed.meta && occParsed.meta.reportDate)
+    ? occParsed.meta.reportDate.trim().split('/').reverse().join('-')
+    : today();
+
+  const rates = getRates();
+
+  const allGuests = [
+    ...(occParsed.stayovers || []),
+    ...(occParsed.arrivals || []),
+    ...(occParsed.departures || [])
+  ].filter(e => /^\d+$/.test(e.room));
+
+  const guestPayments = payData.transactions.filter(t => !t.isCasual && t.isPayment);
+  const refunds = payData.transactions.filter(t => !t.isCasual && t.isRefund);
+
+  return allGuests.map(guest => {
+    const isBillback = isPrepaidOrBillback(guest.remarks);
+    const matches = guestPayments.filter(t => namesMatch(guest.guest, t.guest));
+    const matchedRefunds = refunds.filter(t => namesMatch(guest.guest, t.guest));
+    const grossPaid = matches.reduce((s, t) => s + Math.abs(t.amount), 0);
+    const refundTotal = matchedRefunds.reduce((s, t) => s + Math.abs(t.amount), 0);
+    const netPaid = grossPaid - refundTotal;
+    const methods = [...new Set(matches.map(t => t.bank).filter(Boolean))].join(', ');
+
+    const ratePerNight = rates[guest.description] || 0;
+    const nightsToDate = guest.arrival ? nightsStayedToDate(guest.arrival, reportDate) : 1;
+    const totalNights = typeof guest.nights === 'number' ? guest.nights : nightsToDate;
+    const owedToDate = ratePerNight * nightsToDate;
+    const totalStayValue = ratePerNight * totalNights;
+    const remainingCredit = netPaid - owedToDate;
+    const nightsCovered = ratePerNight > 0 ? Math.floor(netPaid / ratePerNight) : totalNights;
+
+    let payStatus, payStatusCls, balanceNote;
+    if (isBillback) {
+      payStatus = 'Billback / OTA'; payStatusCls = 's-pending';
+      balanceNote = 'Invoice to OTA/Company';
+    } else if (ratePerNight === 0) {
+      payStatus = matches.length > 0 ? 'Paid' : 'No Payment Found';
+      payStatusCls = matches.length > 0 ? 's-closed' : 's-urgent';
+      balanceNote = '—';
+    } else if (matches.length === 0) {
+      payStatus = 'No Payment Found'; payStatusCls = 's-urgent';
+      balanceNote = 'K' + owedToDate.toFixed(2) + ' outstanding';
+    } else if (remainingCredit >= 0) {
+      payStatus = 'Paid — In Credit'; payStatusCls = 's-closed';
+      const extra = ratePerNight > 0 ? Math.floor(remainingCredit / ratePerNight) : 0;
+      balanceNote = '+K' + remainingCredit.toFixed(2) + ' credit (' + extra + ' more night' + (extra!==1?'s':'') + ')';
+    } else {
+      const shortfall = Math.abs(remainingCredit);
+      payStatus = 'Partial — Balance Due'; payStatusCls = 's-open';
+      balanceNote = 'K' + shortfall.toFixed(2) + ' still owed';
+    }
+
+    return { ...guest, payStatus, payStatusCls, netPaid, grossPaid, refundTotal,
+      methods, matchCount: matches.length, ratePerNight, nightsToDate, totalNights,
+      owedToDate, totalStayValue, remainingCredit, nightsCovered, balanceNote, isBillback };
+  });
+}
+
+function renderPayStats(parsed) {
+  const txs = parsed.transactions;
+  const payments = txs.filter(t => t.isPayment && !t.isCasual);
+  const casual = txs.filter(t => t.isCasual);
+  const total = txs.filter(t => t.isPayment).reduce((s,t) => s + Math.abs(t.amount), 0);
+
+  $('pay-stats').style.display = '';
+  $('pay-tabs').style.display = '';
+  $('pay-total').textContent = 'K' + total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  $('pay-paid-count').textContent = payments.length;
+  $('pay-casual-count').textContent = casual.length;
+
+  // Meta
+  const m = $('pay-report-meta');
+  if (parsed.meta.reportDate) {
+    m.style.display = '';
+    m.textContent = `${parsed.meta.hotel||''} · ${parsed.meta.reportDate} · Generated: ${parsed.meta.generatedOn||''}`;
+  }
+}
+
+function renderPayRecon() {
+  if ((!occParsed.stayovers || !occParsed.stayovers.length) && !payData.transactions.length) return;
+
+  const recon = runReconciliation();
+  const unpaid = recon.filter(r => r.payStatus === 'No Payment Found');
+  const unpaidCountEl = $('pay-unpaid-count'); if (unpaidCountEl) unpaidCountEl.textContent = unpaid.length;
+
+  const filter = $('pay-recon-filter')?.value || '';
+  const filtered = filter === 'paid' ? recon.filter(r=>r.payStatus==='Paid — In Credit' || r.payStatus==='Paid')
+    : filter === 'unpaid' ? unpaid
+    : filter === 'prepaid' ? recon.filter(r=>r.payStatus==='Billback / OTA')
+    : recon;
+
+  // Recon table — with nightly allocation columns
+  $('pay-recon-tbody').innerHTML = filtered.map(r => {
+    const netPaidDisplay = r.netPaid > 0 ? 'K' + r.netPaid.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : (r.isBillback ? '—' : '<span style="color:var(--danger)">$0.00</span>');
+    const owedDisplay = r.ratePerNight > 0 ? 'K' + r.owedToDate.toFixed(2) : '—';
+    const rateDisplay = r.ratePerNight > 0 ? 'K' + r.ratePerNight.toFixed(2) : '—';
+    let balColor = '';
+    if (r.payStatus === 'Paid — In Credit') balColor = 'color:var(--accent);font-weight:500';
+    else if (r.payStatus === 'Partial — Balance Due') balColor = 'color:var(--warning);font-weight:500';
+    else if (r.payStatus === 'No Payment Found') balColor = 'color:var(--danger);font-weight:500';
+    const remarks = r.remarks ? `<span title="${r.remarks.replace(/"/g,'&quot;')}" style="cursor:help;color:var(--text3);font-size:11px">${r.remarks.substring(0,30)}${r.remarks.length>30?'…':''}</span>` : '—';
+    return `<tr>
+      <td><strong>${r.room}</strong></td>
+      <td style="font-size:11px;color:var(--text2)">${r.description}</td>
+      <td>${r.guest||'—'}</td>
+      <td style="font-size:11px">${r.arrival}</td>
+      <td style="font-size:11px">${r.departure}</td>
+      <td style="text-align:center;font-size:12px">${r.nightsToDate}/${r.totalNights||'?'}</td>
+      <td style="font-size:12px;color:var(--text2)">${rateDisplay}</td>
+      <td style="font-size:12px">${owedDisplay}</td>
+      <td style="font-size:12px">${netPaidDisplay}</td>
+      <td style="font-size:12px;${balColor}">${r.balanceNote||'—'}</td>
+      <td><span class="status ${r.payStatusCls}"><span class="status-dot"></span>${r.payStatus}</span></td>
+      <td style="font-size:11px;color:var(--text2)">${r.methods||'—'}</td>
+      <td>${remarks}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="13" class="text-muted text-sm" style="padding:16px">Upload the housekeeping report and payment report to see reconciliation</td></tr>';
+
+  // Unpaid table
+  $('pay-unpaid-tbody').innerHTML = unpaid.map(r =>
+    `<tr>
+      <td><strong>${r.room}</strong></td>
+      <td style="font-size:12px">${r.description}</td>
+      <td>${r.guest||'—'}</td>
+      <td style="font-size:12px">${r.arrival}</td>
+      <td style="font-size:12px">${r.departure}</td>
+      <td style="text-align:center">${r.nights}</td>
+      <td style="max-width:200px;font-size:11px;color:var(--text3)">${r.remarks||'—'}</td>
+    </tr>`
+  ).join('') || '<tr><td colspan="7" class="text-muted text-sm" style="padding:16px">No unpaid guests found — great!</td></tr>';
+
+  // All transactions table
+  $('pay-tx-tbody').innerHTML = payData.transactions.map(t => {
+    const cls = t.isRefund ? 's-open' : t.isCasual ? 's-pending' : 's-closed';
+    const label = t.isRefund ? 'Refund' : t.isCasual ? 'Casual' : 'Payment';
+    const amtColor = t.isRefund ? 'color:var(--warning)' : t.isPayment ? 'color:var(--accent)' : '';
+    return `<tr>
+      <td style="font-size:12px">${t.folio||'—'}</td>
+      <td style="font-size:11px;color:var(--text3)">${t.created ? t.created.split('T')[1]?.slice(0,5)||'' : ''}</td>
+      <td>${t.guest||'—'}</td>
+      <td style="font-size:12px;max-width:180px;color:var(--text2)">${t.txDesc}</td>
+      <td><span class="status ${cls}"><span class="status-dot"></span>${t.bank||label}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${t.roomType||'—'}</td>
+      <td style="font-size:12px">${t.arrival||'—'}</td>
+      <td style="font-size:12px">${t.departure||'—'}</td>
+      <td style="font-weight:500;${amtColor}">K${Math.abs(t.amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" class="text-muted text-sm" style="padding:16px">No transactions loaded</td></tr>';
+
+  // Payment method summary
+  const methodTotals = {};
+  payData.transactions.filter(t=>t.isPayment).forEach(t => {
+    const m = t.bank || 'Other';
+    methodTotals[m] = (methodTotals[m]||0) + Math.abs(t.amount);
+  });
+  const methods = Object.keys(methodTotals);
+  const methodCtx = $('pay-method-chart');
+  if (methodCtx._chart) methodCtx._chart.destroy();
+  const colors = ['#2c5f2e','#1a5276','#8b4513','#c0392b','#d4a017','#5d6d7e','#1e8449'];
+  methodCtx._chart = new Chart(methodCtx, {
+    type: 'doughnut',
+    data: { labels: methods, datasets: [{ data: methods.map(m=>methodTotals[m]), backgroundColor: colors }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right'}} }
+  });
+
+  $('pay-method-table').innerHTML = `<table style="width:100%;font-size:13px">
+    <thead><tr><th>Method</th><th style="text-align:right">Total</th><th style="text-align:right">Transactions</th></tr></thead>
+    <tbody>${methods.map((m,i) => `<tr>
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${colors[i]||'#888'};margin-right:6px"></span>${m}</td>
+      <td style="text-align:right;font-weight:500">K${methodTotals[m].toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td style="text-align:right;color:var(--text3)">${payData.transactions.filter(t=>t.isPayment&&t.bank===m).length}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+
+  // Status widget
+  const paid = recon.filter(r=>r.payStatus==='Paid').length;
+  const prepaid = recon.filter(r=>r.payStatus==='Prepaid / Billback').length;
+  $('pay-recon-status').innerHTML = recon.length ? `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px">Paid in full</span>
+        <strong style="color:var(--accent)">${paid}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px">Billback / OTA</span>
+        <strong style="color:var(--info)">${prepaid}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px">Partial — balance due</span>
+        <strong style="color:var(--warning)">${partial}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px">No payment found</span>
+        <strong style="color:var(--danger)">${unpaid.length}</strong>
+      </div>
+      <div class="progress-bar" style="height:8px;margin-top:4px">
+        <div class="progress-fill" style="width:${Math.round((paid+prepaid)/recon.length*100)}%"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3)">${Math.round((paid+prepaid)/recon.length*100)}% of in-house guests accounted for</div>
+    </div>` : '<div class="text-muted text-sm">Upload both reports to see reconciliation.</div>';
+}
+
+function switchPayTab(tab) {
+  ['recon','transactions','unpaid','methods','rates'].forEach(t => {
+    const el = $('pay-tab-'+t); if(el) el.style.display = t===tab?'block':'none';
+  });
+  document.querySelectorAll('#pay-tabs .tab').forEach((b,i) => {
+    b.classList.toggle('active', ['recon','transactions','unpaid','methods','rates'][i]===tab);
+  });
+  if (tab === 'methods') renderPayRecon();
+  if (tab === 'rates') renderRateSettings();
+}
+
+// Restore saved payment data
+try {
+  const savedPay = DB.obj('pay_data');
+  if (savedPay && savedPay.transactions && savedPay.transactions.length) {
+    payData = savedPay;
+    renderPayStats(payData);
+  }
+} catch(e) { console.warn('Could not restore pay data', e); }
+
+// ═══════════════════════════════════
+// GOOGLE SHEETS LIVE DATA
+// Pre-configured links for Cargo 88 Hotel
+// ═══════════════════════════════════
+
+// Hardcoded sheet links — update via Manage Links UI if URLs change
+var GS_DEFAULTS = {
+  'amenities-issued':    'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3Tifg9KJguRoShWiXwlPrdj3D8D-u_0lB1Nm8Oskaz4JV307vFqcr26f3kK5rmvpQCNKbmOb3Yh19/pub?gid=1917061680&single=true&output=csv',
+  'bathroom-amenities':  'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3Tifg9KJguRoShWiXwlPrdj3D8D-u_0lB1Nm8Oskaz4JV307vFqcr26f3kK5rmvpQCNKbmOb3Yh19/pub?gid=819580003&single=true&output=csv',
+  'water-issued':        'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3Tifg9KJguRoShWiXwlPrdj3D8D-u_0lB1Nm8Oskaz4JV307vFqcr26f3kK5rmvpQCNKbmOb3Yh19/pub?gid=349523483&single=true&output=csv',
+  'linen':               'https://docs.google.com/spreadsheets/d/e/2PACX-1vQOtW5CK6-t_QP2xQDW0F6TUXxC5tpHmMTlbYeDI2V-_PEWh9rOv6AqLRLcd_6tIEAre_4ApZ8Xv0aM/pub?gid=1818202192&single=true&output=csv',
+  'linen2':              'https://docs.google.com/spreadsheets/d/e/2PACX-1vQOtW5CK6-t_QP2xQDW0F6TUXxC5tpHmMTlbYeDI2V-_PEWh9rOv6AqLRLcd_6tIEAre_4ApZ8Xv0aM/pub?gid=303801181&single=true&output=csv',
+  'linen-dayend':        'https://docs.google.com/spreadsheets/d/e/2PACX-1vQe-QhFi7PVKqN3Zx2leXeoiySHf1839K44xsW6YTv_oNdVSxCn3rVGrxVAqYyLIe-V-qt0yZ_rQVBn/pub?gid=656695187&single=true&output=csv',
+  'roomcheck':           'https://docs.google.com/spreadsheets/d/e/2PACX-1vQn2obHoliY53ajrGEBjywQFUMgxxNbtJtG8iFUOBoWCA5O5yydtI9kECAXcRcIn89PnXZ-PhobX4V-/pub?gid=2030323457&single=true&output=csv'
+};
+
+var GS_STORAGE_PREFIX = 'gs_link_';
+
+var gsCache = {
+  amenitiesIssued: [], bathroomAmenities: [],
+  waterIssued: [], linen: [], linen2: [], linenDayend: [], roomcheck: []
+};
+
+function getGSLink(key) {
+  return localStorage.getItem(GS_STORAGE_PREFIX + key) || GS_DEFAULTS[key] || '';
+}
+
+function saveGSLink(key) {
+  var el = document.getElementById('gs-' + key);
+  var val = el ? el.value.trim() : '';
+  if (!val) { toastMsg('Paste a link first', 'danger'); return; }
+  localStorage.setItem(GS_STORAGE_PREFIX + key, val);
+  toastMsg('Link updated');
+  fetchSheet(key);
+}
+
+function loadGSLinks() {
+  Object.keys(GS_DEFAULTS).forEach(function(key) {
+    var el = document.getElementById('gs-' + key);
+    if (el) el.value = getGSLink(key);
+  });
+}
+
+function toggleGSSettings() {
+  var panel = document.getElementById('gs-settings-panel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  if (panel.style.display === 'block') loadGSLinks();
+}
+
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbwJW1kWJE8wcJKprT5dZbzMVdipG4H7rE59KLSFUiefd8lp3VbBRNERa1ZEG52gSd7H_g/exec';
+
+async function fetchAllSheets() {
+  var status = document.getElementById('gs-fetch-status');
+  if (status) status.textContent = 'Fetching all sheets…';
+  var keys = Object.keys(GS_DEFAULTS);
+  var fetched = 0; var failed = 0;
+  for (var i = 0; i < keys.length; i++) {
+    var link = getGSLink(keys[i]);
+    if (link) {
+      var ok = await fetchSheet(keys[i]);
+      if (ok) fetched++; else failed++;
+    }
+  }
+  if (status) {
+    var msg = 'Last fetch: ' + new Date().toLocaleTimeString();
+    if (failed > 0) msg += ' (' + failed + ' failed)';
+    status.textContent = msg;
+  }
+  try { updateDashboard(); } catch(e) {}
+}
+
+async function fetchSheet(key) {
+  if (!key) return false;
+  try {
+    // Google Apps Script web app — must use these exact options to avoid CORS/redirect issues
+    var gasUrl = GAS_URL + '?sheet=' + encodeURIComponent(key);
+    var res = await fetch(gasUrl, {
+      method: 'GET',
+      redirect: 'follow',
+      mode: 'cors',
+      headers: { 'Accept': 'text/plain, text/csv, */*' }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var text = await res.text();
+    console.log('Sheet response for', key, ':', text.substring(0, 100));
+    if (!text || text.trim().length === 0) throw new Error('Empty response');
+    if (text.includes('<!DOCTYPE') || text.includes('<html') || text.includes('<HTML')) {
+      throw new Error('Got login page — re-deploy Apps Script with "Anyone" access');
+    }
+    if (text.includes('Unknown sheet')) throw new Error('Sheet key not in Apps Script: ' + key);
+    var rows = parseCSV(text);
+    if (!rows.length) { console.warn('No rows parsed for', key); return false; }
+    if (key === 'amenities-issued')        { gsCache.amenitiesIssued = rows;   renderGSAmenitiesIssued(rows); }
+    else if (key === 'bathroom-amenities') { gsCache.bathroomAmenities = rows; renderGSBathroom(rows); }
+    else if (key === 'water-issued')       { gsCache.waterIssued = rows;       renderGSWater(rows); }
+    else if (key === 'linen')              { gsCache.linen = rows;             renderGSLinen(rows, 'gs-linen-thead', 'gs-linen-tbody'); updateLinenStats(); }
+    else if (key === 'linen2')             { gsCache.linen2 = rows;            renderGSLinen(rows, 'gs-linen2-thead', 'gs-linen2-tbody'); updateLinenStats(); }
+    else if (key === 'linen-dayend')       { gsCache.linenDayend = rows;       renderGSLinen(rows, 'gs-linend-thead', 'gs-linend-tbody'); }
+    else if (key === 'roomcheck')          { gsCache.roomcheck = rows;         renderGSRoomCheck(rows); }
+    return true;
+  } catch(err) {
+    console.error('Fetch failed [' + key + ']:', err.message);
+    toastMsg('Could not load ' + key + ': ' + err.message, 'danger');
+    return false;
+  }
+}
+
+// ── CSV PARSER ─────────────────────────────────────────────
+function parseCSV(text) {
+  var lines = text.replace(/\r/g,'').split('\n').filter(function(l){ return l.trim(); });
+  if (!lines.length) return [];
+  function parseLine(line) {
+    var fields = []; var cur = ''; var inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else { inQ = !inQ; } }
+      else if (c === ',' && !inQ) { fields.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    fields.push(cur.trim());
+    return fields;
+  }
+  var headers = parseLine(lines[0]);
+  return lines.slice(1).map(function(line) {
+    var vals = parseLine(line);
+    var obj = {};
+    headers.forEach(function(h, i) { obj[h] = vals[i] !== undefined ? vals[i] : ''; });
+    obj._headers = headers;
+    return obj;
+  }).filter(function(row) {
+    return headers.some(function(h){ return row[h] && row[h] !== ''; });
+  });
+}
+
+// ── GENERIC TABLE ──────────────────────────────────────────
+function renderGSGenericTable(rows, theadId, tbodyId, maxCols) {
+  var tbody = document.getElementById(tbodyId);
+  var thead = document.getElementById(theadId);
+  if (!tbody) return;
+  if (!rows || !rows.length) {
+    tbody.innerHTML = '<tr><td colspan="12" class="text-muted text-sm" style="padding:16px">No data loaded</td></tr>';
+    return;
+  }
+  var headers = rows[0]._headers || Object.keys(rows[0]).filter(function(k){ return k !== '_headers'; });
+  var cols = headers.slice(0, maxCols || 12);
+  if (thead) thead.innerHTML = '<tr>' + cols.map(function(h){
+    return '<th style="font-size:10px;white-space:nowrap;max-width:120px">' + (h||'').substring(0,30) + '</th>';
+  }).join('') + '</tr>';
+  tbody.innerHTML = rows.slice(0,300).map(function(row) {
+    return '<tr>' + cols.map(function(h) {
+      var v = String(row[h]||'');
+      var flagged = /missing|dirty|not work|fault|broken/i.test(v);
+      var style = 'font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      if (flagged) style += ';color:var(--danger);font-weight:500';
+      return '<td style="' + style + '" title="' + v.replace(/"/g,"'") + '">' + (v||'—') + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+}
+
+// ── DATE MATCHING ──────────────────────────────────────────
+function isTodayRow(val) {
+  if (!val) return false;
+  var s = String(val);
+  var t = today(); // YYYY-MM-DD
+  // Match YYYY-MM-DD, DD/MM/YYYY, M/D/YYYY
+  if (s.startsWith(t)) return true;
+  var parts = t.split('-');
+  var ddmm = parts[2] + '/' + parts[1] + '/' + parts[0];
+  var mdy = (parseInt(parts[1])) + '/' + (parseInt(parts[2])) + '/' + parts[0];
+  return s.startsWith(ddmm) || s.startsWith(mdy) || s.startsWith(parts[0] + '/' + parts[1] + '/' + parts[2]);
+}
+
+function findCol(headers, patterns) {
+  for (var i = 0; i < patterns.length; i++) {
+    var found = headers.find(function(h){ return new RegExp(patterns[i],'i').test(h); });
+    if (found) return found;
+  }
+  return null;
+}
+
+// ── AMENITIES ISSUED ──────────────────────────────────────
+function renderGSAmenitiesIssued(rows) {
+  if (!rows.length) return;
+  var headers = rows[0]._headers || [];
+  var tsCol = findCol(headers, ['timestamp','date','time']) || headers[0];
+  var roomCol = findCol(headers, ['room']);
+  var todayRows = rows.filter(function(r){ return isTodayRow(r[tsCol]); });
+  var roomSet = roomCol ? new Set(todayRows.map(function(r){ return r[roomCol]; }).filter(Boolean)) : new Set();
+  var el = function(id){ return document.getElementById(id); };
+  if (el('gs-am-today')) el('gs-am-today').textContent = todayRows.length;
+  if (el('gs-am-rooms')) el('gs-am-rooms').textContent = roomSet.size || '—';
+  if (el('gs-am-total')) el('gs-am-total').textContent = rows.length;
+  if (el('gs-am-updated')) el('gs-am-updated').textContent = new Date().toLocaleTimeString();
+  if (el('dash-am-issued')) el('dash-am-issued').textContent = todayRows.length || rows.length;
+  renderGSGenericTable(rows, 'gs-am-thead', 'gs-am-tbody', 10);
+}
+
+// ── BATHROOM AMENITIES ────────────────────────────────────
+function renderGSBathroom(rows) {
+  renderGSGenericTable(rows, 'gs-bath-thead', 'gs-bath-tbody', 12);
+}
+
+// ── WATER ISSUED ──────────────────────────────────────────
+function renderGSWater(rows) {
+  if (!rows.length) return;
+  var headers = rows[0]._headers || [];
+  var tsCol = findCol(headers, ['timestamp','date']) || headers[0];
+  var todayRows = rows.filter(function(r){ return isTodayRow(r[tsCol]); });
+  var el = function(id){ return document.getElementById(id); };
+  if (el('gs-water-today')) el('gs-water-today').textContent = todayRows.length || '—';
+  if (el('gs-water-count')) el('gs-water-count').textContent = rows.length;
+  renderGSGenericTable(rows, 'gs-water-thead', 'gs-water-tbody', 10);
+}
+
+// ── LINEN ─────────────────────────────────────────────────
+function renderGSLinen(rows, theadId, tbodyId) {
+  renderGSGenericTable(rows, theadId, tbodyId, 12);
+  updateLinenStats();
+}
+
+function updateLinenStats() {
+  var allLinenRows = gsCache.linen.concat(gsCache.linen2);
+  if (!allLinenRows.length) return;
+  var latest = allLinenRows[allLinenRows.length - 1];
+  var headers = latest._headers || [];
+  var tsCol = findCol(headers, ['timestamp','date']) || headers[0];
+  var shiftCol = findCol(headers, ['shift']);
+  var storeCol = findCol(headers, ['store','storekeep']);
+  var bathTowelCol = findCol(headers, ['bath\\s*towel']);
+  var handTowelCol = findCol(headers, ['hand\\s*tow']);
+  var robeCol = findCol(headers, ['robe','bath\\s*robe']);
+  var sheetCols = headers.filter(function(h){ return /single|queen|king|super|fitted|flat|duvet|matt/i.test(h); });
+
+  var todayRows = allLinenRows.filter(function(r){ return isTodayRow(r[tsCol]); });
+  var useRows = todayRows.length ? todayRows : [latest];
+
+  function sumCol(col) {
+    if (!col) return 0;
+    return useRows.reduce(function(s,r){ return s + (parseInt(r[col])||0); }, 0);
+  }
+
+  var el = function(id){ return document.getElementById(id); };
+  if (el('gs-linen-towels')) el('gs-linen-towels').textContent = sumCol(bathTowelCol) || '—';
+  if (el('gs-linen-hand'))   el('gs-linen-hand').textContent   = sumCol(handTowelCol) || '—';
+  if (el('gs-linen-robes'))  el('gs-linen-robes').textContent  = sumCol(robeCol) || '—';
+  if (el('gs-linen-shift'))  el('gs-linen-shift').textContent  = shiftCol ? (latest[shiftCol]||'—') : '—';
+  if (el('gs-linen-store'))  el('gs-linen-store').textContent  = storeCol ? (latest[storeCol]||'—') : '—';
+
+  var sheetTotal = sheetCols.reduce(function(s,c){ return s + sumCol(c); }, 0);
+  if (el('gs-linen-sheets')) el('gs-linen-sheets').textContent = sheetTotal || '—';
+
+  var towelTotal = sumCol(bathTowelCol) + sumCol(handTowelCol);
+  if (el('dash-linen')) el('dash-linen').textContent = towelTotal || allLinenRows.length + ' records';
+}
+
+function switchLinenTab(tab) {
+  ['dispatch','dispatch2','dayend'].forEach(function(t) {
+    var el = document.getElementById('linen-tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('#linen-subtabs .tab').forEach(function(b,i){
+    b.classList.toggle('active', ['dispatch','dispatch2','dayend'][i] === tab);
+  });
+}
+
+// ── ROOM CHECK ────────────────────────────────────────────
+function renderGSRoomCheck(rows) {
+  if (!rows.length) return;
+  var headers = rows[0]._headers || [];
+  var tsCol = findCol(headers, ['timestamp','date']) || headers[0];
+  var roomCol = findCol(headers, ['room']);
+  var nameCol = findCol(headers, ['name','staff','checker','your name','select your name']);
+  var todayRows = rows.filter(function(r){ return isTodayRow(r[tsCol]); });
+  var issueCount = todayRows.filter(function(r){
+    return Object.keys(r).filter(function(k){ return k !== '_headers'; }).some(function(k){
+      return /missing|dirty|not work|fault|broken|restocked/i.test(String(r[k]));
+    });
+  }).length;
+  var staffSet = nameCol ? new Set(todayRows.map(function(r){ return r[nameCol]; }).filter(Boolean)) : new Set();
+  var el = function(id){ return document.getElementById(id); };
+  if (el('gs-rc-today')) el('gs-rc-today').textContent = todayRows.length || rows.length;
+  if (el('gs-rc-issues')) el('gs-rc-issues').textContent = issueCount;
+  if (el('gs-rc-staff')) el('gs-rc-staff').textContent = staffSet.size || '—';
+  // Hide the "not connected" alert if data loaded
+  var alert = document.querySelector('#gs-tab-roomcheck .alert-warn');
+  if (alert && rows.length) alert.style.display = 'none';
+  var rcFilter = el('gs-rc-filter');
+  if (rcFilter && roomCol) {
+    var allRooms = [...new Set(rows.map(function(r){ return r[roomCol]; }).filter(Boolean))].sort(function(a,b){ return parseInt(a)-parseInt(b); });
+    rcFilter.innerHTML = '<option value="">All Rooms</option>' + allRooms.map(function(r){ return '<option>' + r + '</option>'; }).join('');
+  }
+  renderGSGenericTable(rows, 'gs-rc-thead', 'gs-rc-tbody', 10);
+}
+
+function filterRCTable() {
+  var filter = document.getElementById('gs-rc-filter') ? document.getElementById('gs-rc-filter').value : '';
+  var rows = gsCache.roomcheck;
+  if (!rows.length) return;
+  var headers = rows[0]._headers || [];
+  var roomCol = findCol(headers, ['room']);
+  var filtered = (filter && roomCol) ? rows.filter(function(r){ return r[roomCol] === filter; }) : rows;
+  renderGSGenericTable(filtered, 'gs-rc-thead', 'gs-rc-tbody', 10);
+}
+
+function filterGSTable(type) {
+  var search = document.getElementById('gs-am-search') ? document.getElementById('gs-am-search').value.toLowerCase() : '';
+  var rows = gsCache.amenitiesIssued;
+  var filtered = search ? rows.filter(function(r){
+    return Object.keys(r).filter(function(k){ return k !== '_headers'; }).some(function(k){
+      return String(r[k]).toLowerCase().includes(search);
+    });
+  }) : rows;
+  renderGSGenericTable(filtered, 'gs-am-thead', 'gs-am-tbody', 10);
+}
+
+function switchGSTab(tab) {
+  ['amenities','bathroom','water','linen','roomcheck'].forEach(function(t) {
+    var el = document.getElementById('gs-tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('#gs-tabs .tab').forEach(function(b,i){
+    b.classList.toggle('active', ['amenities','bathroom','water','linen','roomcheck'][i] === tab);
+  });
+}
+
+// Auto-fetch on load
+(async function initGS() {
+  try { await fetchAllSheets(); } catch(e) { console.warn('GS init error', e); }
+})();
+
+
+// ═══════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════
+function updateDashboard() {
+  const fbR = DB.get('fb_records');
+  const jobs = DB.get('jobs');
+  const amenities = DB.get('amenities');
+  const leaves = DB.get('leaves');
+  const lateness = DB.get('lateness');
+
+  // Occ — use parsed housekeeping report
+  const p = occParsed;
+  if (p && (p.stayovers?.length || p.arrivals?.length)) {
+    const isRoom = e => /^\d+$/.test(e.room);
+    const occupied = (p.stayovers||[]).filter(isRoom).length + (p.arrivals||[]).filter(isRoom).length;
+    const pct = Math.round(occupied / 70 * 100);
+    $('dash-occ').textContent = pct + '%';
+    $('dash-revpar').textContent = occupied + ' rooms';
+  } else {
+    $('dash-occ').textContent = '—';
+    $('dash-revpar').textContent = '—';
+  }
+
+  // F&B today
+  const todayFB = fbR.filter(r => r.date === today());
+  const todayRev = todayFB.reduce((s,r)=>s+r.food+r.bev,0);
+  $('dash-fb').textContent = todayRev > 0 ? 'K' + fmt(todayRev,2) : '—';
+
+  // Maintenance
+  const openJobs = jobs.filter(j => j.status==='Open').length;
+  $('dash-maint').textContent = openJobs;
+
+  // Low stock
+  const lowStock = amenities.filter(i => i.par > 0 && i.stock <= i.par).length;
+  $('dash-stock').textContent = lowStock;
+
+  // Staff
+  const todayLeave = leaves.filter(l => today() >= l.from && today() <= l.to).length;
+  const todayLate = lateness.filter(l => l.date === today()).length;
+  $('dash-staff').textContent = `${todayLeave} / ${todayLate}`;
+
+  // Dashboard lists
+  $('dash-maint-list').innerHTML = jobs.filter(j=>j.status!=='Closed').slice(0,5).map(j =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${j.location}: ${j.desc.substring(0,40)}</span>
+      <span class="status ${j.priority==='Urgent'?'s-urgent':'s-open'}" style="margin-left:8px"><span class="status-dot"></span>${j.priority}</span>
+    </div>`
+  ).join('') || '<div class="text-muted text-sm">No open jobs</div>';
+
+  const lowItems = amenities.filter(i=>i.par>0&&i.stock<=i.par).slice(0,5);
+  $('dash-alerts-list').innerHTML = lowItems.map(i =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${i.name}</span>
+      <span class="badge-warn" style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--warning-light);color:var(--warning)">${i.stock} ${i.unit} left</span>
+    </div>`
+  ).join('') || '<div class="text-muted text-sm">No alerts</div>';
+}
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+updateDashboard();
+
+// Set default dates
+document.querySelectorAll('input[type="date"]').forEach(el => { if(!el.value) el.value = today(); });
+</script>
+</body>
+</html>
